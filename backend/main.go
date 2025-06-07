@@ -6,7 +6,8 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/api/hello", messageHandler)
+	http.HandleFunc("/api/message", messageHandler)
+	http.HandleFunc("/api/startButton", startHandler)
 	log.Println("Сервер запущен на http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
 }
