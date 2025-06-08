@@ -2,122 +2,103 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/golang-jwt/jwt/v5"
 	"log"
 	"net/http"
-	"strings"
+	"sync"
+
+	"github.com/google/uuid"
 )
 
-type RequestMessage struct {
-	Message string `json:"message"`
+// Session data type for managing sessions
+type Session struct {
+	ID   string
+	Data string // Save some data about this dialog mb
 }
 
-type ResponseMessage struct {
-	Message string `json:"message"`
-}
+var (
+	sessionStore = make(map[string]Session)
+	storeMu      sync.Mutex // For locking/unlocking sessionStore
+)
 
-type User struct {
-	Username string `json:"user"`
-	Password string `json:"password"`
-}
-
-var users = map[string]User{
-	"admin": {Username: "admin", Password: "1234"},
-}
-
-func startHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != http.MethodPost {
-		http.Error(writer, "Only POST allowed", http.StatusMethodNotAllowed)
-	}
-
-	log.Println("The helper was started")
-
-	resp := ResponseMessage{Message: "Hello, I'm your personal AI helper, sing up or login"}
-
-	writer.Header().Set("Content-Type", "application/json")
-
-	json.NewEncoder(writer).Encode(resp)
-
-	http.HandleFunc("/api/login", loginHandler)
-
-}
-
-func loginHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != http.MethodPost {
-		http.Error(writer, "Only POST", http.StatusMethodNotAllowed)
+// First (start) button for starting dialog with AIHelper
+func startHandler(w http.ResponseWriter, r *http.Request) {
+	// We should check that client only send data
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-	json.NewDecoder(request.Body).Decode(&creds)
+	session := getOrCreateSession(w, r)
 
-	user, exists := users[creds.Username]
-	if !exists || user.Password != creds.Password {
-		http.Error(writer, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
+	log.Println("Новая сессия: " + session.ID)
 
-	//TODO create a JWT-token and return to client
-	resp := map[string]string{"message": "Вы вошли как " + creds.Username}
-	json.NewEncoder(writer).Encode(resp)
+	resp := map[string]string{
+		"message": "Привет! Я твой AI-консультант. Задавай вопросы!"}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
-var jwtKey = []byte("my_secret_key") // TODO save in
-// Функция для валидации JWT
-func validateJWT(request *http.Request) (string, error) {
-	authHeader := request.Header.Get("Authorization")
-	if authHeader == "" {
-		return "", http.ErrNoCookie
+func messageHandler(w http.ResponseWriter, r *http.Request) {
+	// We should check that client only send data
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
 	}
 
-	// Ожидаем: "Bearer <токен>"
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", http.ErrNoCookie
+	session := getOrCreateSession(w, r)
+
+	var clientMsg struct {
+		Message string `json:"message"`
 	}
 
-	tokenStr := parts[1]
-
-	claims := &jwt.RegisteredClaims{}
-	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-
-	if err != nil || !token.Valid {
-		return "", err
+	if err := json.NewDecoder(r.Body).Decode(&clientMsg); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
 	}
 
-	// Возвращаем имя пользователя (если добавлено в Subject)
-	return claims.Subject, nil
+	// TODO handle this message with AI
+	log.Printf("Сообщение от %s: %s", session.ID, clientMsg.Message)
+
+	resp := map[string]string{
+		"response": "Здесь будет ответ от ИИ",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 }
 
-func messageHandler(writer http.ResponseWriter, request *http.Request) {
-	if request.Method != http.MethodPost {
-		http.Error(writer, "Only POST allowed", http.StatusMethodNotAllowed)
-		return
+func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
+	cookie, err := r.Cookie("session_id") //The user was in our cite?
+	if err != nil || cookie.Value == "" { //If no create new ID
+		newID := uuid.New().String()
+		session := Session{
+			ID:   newID,
+			Data: "",
+		}
+
+		storeMu.Lock()
+		sessionStore[newID] = session //Put the session into map
+		storeMu.Unlock()
+
+		http.SetCookie(w, &http.Cookie{ //Set cookie for client for future work with new ID
+			Name:     "session_id",
+			Value:    newID,
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   false,
+		})
+
+		return session
 	}
 
-	// 🔒 Проверяем токен
-	username, err := validateJWT(request)
-	if err != nil {
-		http.Error(writer, "Unauthorized: invalid or missing token", http.StatusUnauthorized)
-		return
+	storeMu.Lock()
+	session, exists := sessionStore[cookie.Value] //Get the ID from map if user already was on our cite
+	storeMu.Unlock()
+
+	if !exists {
+		return getOrCreateSession(w, r)
 	}
 
-	log.Println("Authorized user:", username)
-
-	var req RequestMessage
-	err = json.NewDecoder(request.Body).Decode(&req)
-	if err != nil {
-		http.Error(writer, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	resp := ResponseMessage{Message: "Got, " + req.Message + " from user " + username}
-
-	writer.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(writer).Encode(resp)
+	return session
 }
