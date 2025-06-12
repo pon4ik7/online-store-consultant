@@ -31,7 +31,6 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 	session := getOrCreateSession(w, r)
 
 	log.Println("Новая сессия: " + session.ID)
-
 	resp := map[string]string{
 		"message": "Привет! Я твой AI-консультант. Задавай вопросы!"}
 
@@ -97,8 +96,30 @@ func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 	storeMu.Unlock()
 
 	if !exists {
-		return getOrCreateSession(w, r)
+		log.Printf("Старая сессия %s не найдена, создаём новую", cookie.Value)
+		return createNewSession(w)
 	}
 
+	return session
+}
+
+func createNewSession(w http.ResponseWriter) Session {
+	newID := uuid.New().String()
+	session := Session{
+		ID:   newID,
+		Data: "",
+	}
+
+	storeMu.Lock()
+	sessionStore[newID] = session
+	storeMu.Unlock()
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    newID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
 	return session
 }
