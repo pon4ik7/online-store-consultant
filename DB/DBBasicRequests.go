@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -22,6 +23,7 @@ func init() {
 		log.Fatal("Error connecting to the database: ", err)
 	}
 	runMigrations()
+	populateTestData()
 }
 
 func runMigrations() {
@@ -50,6 +52,15 @@ func main() {
 	http.HandleFunc("/api/sessions/messages/add", addMessage)
 
 	log.Println("Сервер запущен на :8081")
+	sessionID := uuid.New().String()
+	context := "Новый контекст сессии"
+	SaveDialogueContext(sessionID, context, db)
+	messagesCache := make(map[string]map[string]string)
+	messagesCache["sessionID1"] = map[string]string{
+		"Test": "test",
+	}
+	result := ClarifyProductContext(messagesCache, "sessionID1")
+	fmt.Println(result)
 	log.Fatal(http.ListenAndServe(":8081", nil))
 }
 
@@ -106,4 +117,30 @@ func addMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write([]byte("Message added successfully"))
+}
+
+func populateTestData() {
+	insertProduct := `INSERT INTO popular_products (name, description, price, rating, category, product_url, image_url) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err := db.Exec(insertProduct, "Smartphone", "A high-end smartphone with great features", 999.99, 4.7, "Electronics", "http://example.com/product/1", "http://example.com/images/product1.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	_, err = db.Exec(insertProduct, "Smartphone Y", "A mid-range smartphone with decent specs", 499.99, 4.2, "Electronics", "http://example.com/product/2", "http://example.com/images/product2.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	_, err = db.Exec(insertProduct, "Laptop A", "A powerful laptop for gaming and work", 1500.00, 4.8, "Computers", "http://example.com/product/3", "http://example.com/images/product3.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	_, err = db.Exec(insertProduct, "Laptop B", "A budget-friendly laptop for daily tasks", 300.00, 3.8, "Computers", "http://example.com/product/4", "http://example.com/images/product4.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	_, err = db.Exec(insertProduct, "Headphones X", "Noise-cancelling headphones with great sound", 150.00, 4.5, "Accessories", "http://example.com/product/5", "http://example.com/images/product5.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	log.Println("Test data inserted successfully!")
 }

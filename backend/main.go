@@ -20,6 +20,7 @@ func init() {
 		log.Fatal("Error connecting to the database: ", err)
 	}
 	runMigrations()
+	go startSessionChecker()
 }
 
 func runMigrations() {

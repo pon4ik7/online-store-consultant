@@ -5,17 +5,18 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 // Session data type for managing sessions
 type Session struct {
-	ID   string
-	Data string // Save some data about this dialog mb
+	ID         string
+	LastActive time.Time
+	Context    string // Save some data about this dialog mb
 }
 
-// TODO delete the data attached to the session after 15 minutes have passed
 var (
 	sessionStore  = make(map[string]Session)
 	messagesCache map[string]map[string]string
@@ -40,6 +41,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+	updateLastActive(session.ID)
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +72,12 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(ok)
 	}
 
+	err := saveMessage(session.ID, clientMsg.Message, resp["response"])
+	if err != nil {
+		http.Error(w, "Error saving message", http.StatusInternalServerError)
+		return
+	}
+	updateLastActive(session.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
@@ -79,8 +87,8 @@ func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 	if err != nil || cookie.Value == "" { //If no create new ID
 		newID := uuid.New().String()
 		session := Session{
-			ID:   newID,
-			Data: "",
+			ID:      newID,
+			Context: "",
 		}
 
 		storeMu.Lock()
@@ -113,8 +121,16 @@ func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 func createNewSession(w http.ResponseWriter) Session {
 	newID := uuid.New().String()
 	session := Session{
-		ID:   newID,
-		Data: "",
+		ID:         newID,
+		LastActive: time.Now(),
+		Context:    "",
+	}
+	_, err := db.Exec(`
+		INSERT INTO sessions (session_id, context, last_active)
+		VALUES ($1, $2, $3)
+	`, newID, session.Context, session.LastActive)
+	if err != nil {
+		log.Printf("Error inserting session into database: %v", err)
 	}
 
 	storeMu.Lock()
@@ -128,5 +144,9 @@ func createNewSession(w http.ResponseWriter) Session {
 		HttpOnly: true,
 		Secure:   false,
 	})
+	err = createSessionMessagesTable(newID)
+	if err != nil {
+		log.Printf("Error creating table for session %s", newID)
+	}
 	return session
 }
