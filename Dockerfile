@@ -7,7 +7,7 @@ COPY go.mod go.sum ./
 RUN go mod tidy
 COPY . .
 RUN cd backend && go build -o ../main .
-COPY entrypoint.sh /
+COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
