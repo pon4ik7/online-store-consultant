@@ -18,9 +18,8 @@ type Session struct {
 }
 
 var (
-	sessionStore  = make(map[string]Session)
-	messagesCache map[string]map[string]string
-	storeMu       sync.Mutex // For locking/unlocking sessionStore
+	sessionStore = make(map[string]Session)
+	storeMu      sync.Mutex // For locking/unlocking sessionStore
 )
 
 // First (start) button for starting dialog with AIHelper
@@ -32,7 +31,6 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := getOrCreateSession(w, r)
-	messagesCache = make(map[string]map[string]string)
 
 	log.Println("Новая сессия: " + session.ID)
 	log.Print("Кэшируем сообщения пользователя")
@@ -62,21 +60,16 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aiResponse, ok := HandleUserQuery(messagesCache, clientMsg.Message, false, session.ID)
+	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID)
 	log.Printf("Сообщение от %s: %s", session.ID, clientMsg.Message)
 	resp := make(map[string]string)
 	if ok == nil {
 		resp["response"] = aiResponse
 	} else {
-		resp["response"] = "ai could not handle the request, please, ask the support team"
+		resp["response"] = "The consultant could not handle the request, please, ask the support team"
 		log.Println(ok)
 	}
 
-	err := saveMessage(session.ID, clientMsg.Message, resp["response"])
-	if err != nil {
-		http.Error(w, "Error saving message", http.StatusInternalServerError)
-		return
-	}
 	updateLastActive(session.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
@@ -84,26 +77,9 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 
 func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 	cookie, err := r.Cookie("session_id") //The user was in our cite?
+
 	if err != nil || cookie.Value == "" { //If no create new ID
-		newID := uuid.New().String()
-		session := Session{
-			ID:      newID,
-			Context: "",
-		}
-
-		storeMu.Lock()
-		sessionStore[newID] = session //Put the session into map
-		storeMu.Unlock()
-
-		http.SetCookie(w, &http.Cookie{ //Set cookie for client for future work with new ID
-			Name:     "session_id",
-			Value:    newID,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   false,
-		})
-
-		return session
+		return createNewSession(w)
 	}
 
 	storeMu.Lock()
@@ -111,7 +87,7 @@ func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 	storeMu.Unlock()
 
 	if !exists {
-		log.Printf("Старая сессия %s не найдена, создаём новую", cookie.Value)
+		log.Printf("The old session %s is not found, creating a new one", cookie.Value)
 		return createNewSession(w)
 	}
 
@@ -125,6 +101,7 @@ func createNewSession(w http.ResponseWriter) Session {
 		LastActive: time.Now(),
 		Context:    "",
 	}
+
 	_, err := db.Exec(`
 		INSERT INTO sessions (session_id, context, last_active)
 		VALUES ($1, $2, $3)
@@ -144,9 +121,11 @@ func createNewSession(w http.ResponseWriter) Session {
 		HttpOnly: true,
 		Secure:   false,
 	})
+
 	err = createSessionMessagesTable(newID)
 	if err != nil {
 		log.Printf("Error creating table for session %s", newID)
 	}
+
 	return session
 }
