@@ -109,3 +109,25 @@ func savePopularProductsData() {
 	}
 	log.Println("Test data inserted successfully!")
 }
+
+// Returns the context within a particular session
+func returnSessionMessages(sessionID string) ([]string, error) {
+	query := fmt.Sprintf(`SELECT message, response FROM "session_messages_%s"`, sessionID)
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("Error fetching session messages for session %s: %v", sessionID, err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	messagesCache := make([]string, 10)
+	for rows.Next() {
+		var msg, response string
+		if err := rows.Scan(&msg, &response); err != nil {
+			log.Printf("Error reading messages for session %s: %v", sessionID, err)
+		}
+		messagesCache = append(messagesCache, msg+":"+response)
+	}
+
+	return messagesCache, nil
+}
