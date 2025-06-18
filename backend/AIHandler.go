@@ -43,9 +43,10 @@ func HandleUserQuery(query string, isAdmin bool, sessionID string) (string, erro
 	} else {
 		err := saveMessage(sessionID, initialPrompt, response)
 		if err != nil {
-			fmt.Printf("Error saving message: %v\n", err)
+			log.Fatalf("Error saving message: %v\n", err)
 			return response, err
 		}
+		SaveDialogueContext(sessionID, db)
 	}
 	return response, nil
 }
@@ -121,11 +122,21 @@ func ClarifyProductContext(sessionID string) string {
 		}
 	}
 
-	messagesCache, err := returnSessionMessages(sessionID)
-	for _, context := range messagesCache {
-		instructions += "\n" + context
-	}
+	instructions += FetchDialogueContext(sessionID)
 	return instructions + "QUESTION: "
+}
+
+func FetchDialogueContext(sessionID string) string {
+	messagesCache, err := returnSessionMessages(sessionID)
+	if err != nil {
+		log.Printf("The error encountered while fetching: %v", err)
+		return ""
+	}
+	context := "\n"
+	for _, message := range messagesCache {
+		context += message + "\n"
+	}
+	return context
 }
 
 func GetResponse(query string, isAdmin bool) (string, error) {
@@ -197,13 +208,23 @@ func GetResponse(query string, isAdmin bool) (string, error) {
 	return aiReply.Choices[0].ResponseContent.Content, nil
 }
 
-func SaveDialogueContext(sessionIDStr string, keyWords string, db *sql.DB) {
+func SaveDialogueContext(sessionIDStr string, db *sql.DB) {
 	// This request works at the end of the session - it preserves its context
+	wholeDialogue := FetchDialogueContext(sessionIDStr)
+	instruction := "EXTRACT KEYWORDS from this user-consultant dialogue, you MUST preserve core meaning +" +
+		"so that consultant would be able to recall what was the dialogue about. You should use no more than 25 words" +
+		"DO NOT include ANY specifiers (e.g. keywords: etc.) only words, nothing else" +
+		"Here is the dialogue: " + wholeDialogue
+	keyWords, err := GetResponse(instruction, true)
+	if err != nil {
+		log.Printf("Error encountered while trying to save keywords: %v", err)
+	}
+
 	sessionID, err := uuid.Parse(sessionIDStr)
 	_, err = db.Exec(`
 		INSERT INTO sessions (session_id, context)
 		VALUES ($1, $2)
-		ON CONFLICT (session_id) DO UPDATE 
+		ON CONFLICT (session_id) DO UPDATE
 		SET context = EXCLUDED.context;
 	`, sessionID, keyWords)
 	if err != nil {
