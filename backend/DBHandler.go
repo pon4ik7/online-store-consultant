@@ -95,3 +95,17 @@ func saveMessage(sessionID string, userMessage string, response string) error {
 	log.Printf("Message and response saved for session %s", sessionID)
 	return nil
 }
+
+// Save popular products info from the website
+// TODO: Use queries to get information about popular products on the site
+func savePopularProductsData() {
+	insertProduct := `INSERT INTO popular_products (name, description, price, rating, category, product_url, image_url) 
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
+	// Test values
+	_, err := db.Exec(insertProduct, "Smartphone", "A high-end smartphone with great features", 999.99, 4.7, "Electronics", "http://example.com/product/1", "http://example.com/images/product1.jpg")
+	if err != nil {
+		log.Printf("Error inserting product: %v", err)
+	}
+	log.Println("Test data inserted successfully!")
+}

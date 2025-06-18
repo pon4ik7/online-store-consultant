@@ -64,6 +64,7 @@ func ClarifyProductContext(messagesCache map[string]map[string]string, sessionID
 		"If the QUESTION: is unclear, ask for details like a human would\n CONTEXT:"
 
 	// The data about the product that the user is asking about - it must be obtained using HTTP-requests.
+	// TODO: Use requests to get information about the current product
 	var productName = ""
 	var productCategory = ""
 	var productDescription = ""
