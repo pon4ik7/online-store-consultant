@@ -13,8 +13,6 @@ services:
       POSTGRES_USER: radat
       POSTGRES_PASSWORD: radatSWP25
       POSTGRES_DB: radatDB
-    volumes:
-      - pgdata:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
