@@ -46,7 +46,6 @@ func HandleUserQuery(query string, isAdmin bool, sessionID string) (string, erro
 			log.Fatalf("Error saving message: %v\n", err)
 			return response, err
 		}
-		SaveDialogueContext(sessionID, db)
 	}
 	return response, nil
 }
