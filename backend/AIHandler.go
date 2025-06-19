@@ -219,7 +219,7 @@ func SaveDialogueContext(sessionIDStr string, db *sql.DB) {
 	if err != nil {
 		log.Printf("Error encountered while trying to save keywords: %v", err)
 	}
-
+	log.Printf("Saving keywords: %v", keyWords)
 	sessionID, err := uuid.Parse(sessionIDStr)
 	_, err = db.Exec(`
 		INSERT INTO sessions (session_id, context)
