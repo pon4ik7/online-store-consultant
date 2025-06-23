@@ -60,8 +60,8 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID)
 	log.Printf("Сообщение от %s: %s", session.ID, clientMsg.Message)
+	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID)
 	resp := make(map[string]string)
 	if ok == nil {
 		resp["response"] = aiResponse
