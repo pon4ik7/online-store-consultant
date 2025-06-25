@@ -40,14 +40,10 @@ func checkInactiveSessions() {
 			continue
 		}
 
-		// If last active time is older than 15 minutes and context is empty, save context and delete the messages table
+		// If last active time is older than 15 minutes and context is empty, save context
 		if time.Since(lastActive) > 15*time.Minute && context == "" {
-			log.Printf("Session %s has been inactive for 15 minutes, saving context and deleting session messages", sessionID)
+			log.Printf("Session %s has been inactive for 15 minutes, saving context", sessionID)
 			SaveDialogueContext(sessionID.String(), db)
-			_, err := db.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS "session_messages_%s";`, sessionID))
-			if err != nil {
-				log.Printf("Error deleting session messages for session %s: %v", sessionID, err)
-			}
 		}
 	}
 }
