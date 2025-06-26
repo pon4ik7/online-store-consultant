@@ -47,6 +47,9 @@ func main() {
 	http.HandleFunc("/api/start", startHandler)
 	http.HandleFunc("/api/message", messageHandler)
 	http.HandleFunc("/api/end", endHandler)
+	http.HandleFunc("/api/products/", productsHandler)
+	http.HandleFunc("/api/register", registerHandler)
+	http.HandleFunc("/api/login", loginHandler)
 
 	log.Println("Сервер запущен на http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
