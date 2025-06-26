@@ -1,0 +1,78 @@
+{
+  "imgUrl": "https://example.com/macbookpro_16_m4max.jpg",
+  "name": "MacBook Pro 16\" (2024, M4 Max)",
+  "brand": "Apple",
+  "price": 3599,
+  "rating": 4.9,
+  "options": {
+    "size": ["16\""],
+    "chip": ["M4 Max 14‑core CPU / 32‑core GPU", "M4 Max 16‑core CPU / 40‑core GPU"],
+    "memory": ["48GB", "64GB", "128GB"],
+    "storage": ["1TB", "2TB", "4TB", "8TB"],
+    "color": ["Silver", "SpaceBlack"]
+  },
+  "Characteristics": {
+    "Общие характеристики": {
+      "ОС": "macOS Sequoia",
+      "Чип": "Apple M4 Max (14‑core или 16‑core CPU, 32‑core или 40‑core GPU)",
+      "Neural Engine": "16‑core Neural Engine",
+      "Память": "48‑128GB LPDDR5X unified memory (up to 546GB/s)",
+      "SSD": "1‑8TB PCIe‑based SSD"
+    },
+    "Экран": {
+      "Тип": "Liquid Retina XDR",
+      "Диагональ": "16.2\"",
+      "Разрешение": "3456×2234 px (~254ppi)",
+      "Яркость SDR": "1000 нит (sustained)",
+      "Яркость HDR": "1600 нит peak",
+      "Контрастность": "1000000:1",
+      "Цветовой охват": "P3, 1billion colors",
+      "True Tone": true,
+      "ProMotion": "До 120Hz адаптивная частота",
+      "Опция Nano‑Texture": true
+    },
+    "Производительность и графика": {
+      "CPU": "14‑core или 16‑core (10/12 P‑cores + 4 E‑cores)",
+      "GPU": "32‑core или 40‑core GPU с трассировкой лучей",
+      "Memory bandwidth": "410–546GB/s",
+      "Media Engine": "H.264, HEVC, ProRes/ProRes RAW encode/decode, AV1 decode"
+    },
+    "Порты и расширения": {
+      "Thunderbolt": "3×Thunderbolt 5 (USB‑C, 120Gb/s)",
+      "HDMI": "HDMI2.1 (до 8K@60)",
+      "SDXC": "UHS‑II card slot",
+      "Audio": "3.5мм наушники с поддержкой высокоомных наушников",
+      "MagSafe": "MagSafe3 зарядка"
+    },
+    "Связь и коммуникации": {
+      "Wi‑Fi": "Wi‑Fi6E (802.11ax)",
+      "Bluetooth": "5.3",
+      "Камера": "12MP FaceTime HD с CenterStage",
+      "Audio": "Шесть динамиков, включая низкочастотные",
+      "Микрофоны": "Три студийных микрофона"
+    },
+    "Батарея и питание": {
+      "Батарея": "99.6Wh lithium‑polymer",
+      "Видео‑воспроизведение": "до 21ч (M4 Max, 16″), 24ч (M4 Pro, 16″)  [oai_citation:0‡media.bechtle.com](https://media.bechtle.com/asrc/180712/1c4b3d4ee288fc9434f5175bf56070570/c3/-/3cd346c56a624f58aab7a471458b27a6/apple-macbook-pro-14-m4-max-36gb-1tb-ez-adatlap-1?utm_source=chatgpt.com)",
+      "Веб‑серфинг по Wi‑Fi": "до 14ч",
+      "Адаптер": "96W USB‑C Power Adapter",
+      "Кабель": "USB‑C to MagSafe3"
+    },
+    "Габариты и вес": {
+      "Размеры": "35.57×24.81×1.68см",
+      "Вес": "1.62кг (3.6lbs)  [oai_citation:1‡media.bechtle.com](https://media.bechtle.com/asrc/180712/1c4b3d4ee288fc9434f5175bf56070570/c3/-/3cd346c56a624f58aab7a471458b27a6/apple-macbook-pro-14-m4-max-36gb-1tb-ez-adatlap-1?utm_source=chatgpt.com) [oai_citation:2‡ru.wikipedia.org](https://ru.wikipedia.org/wiki/Mac_Studio?utm_source=chatgpt.com) [oai_citation:3‡ru.wikipedia.org](https://ru.wikipedia.org/wiki/MacBook_Pro?utm_source=chatgpt.com)"
+    },
+    "Защита и конструкция": {
+      "Корпус": "Алюминий",
+      "Цвета": "Silver и SpaceBlack",
+      "Клавиатура": "Magic Keyboard с TouchID",
+      "Трекпад": "Force Touch"
+    },
+    "Дополнительные возможности": {
+      "Apple Intelligence": true,
+      "Поддержка до 3 внешних дисплеев 6K@60 + 1 4K@240 (через HDMI)  [oai_citation:4‡cincodias.elpais.com](https://cincodias.elpais.com/smartlife/gadgets/2024-10-31/nuevo-apple-macbook-pro-m4.html?utm_source=chatgpt.com) [oai_citation:5‡reddit.com](https://www.reddit.com/r/macbookpro/comments/1gkxrzm/thoughts_on_the_new_macbook_pro_m4_max/?utm_source=chatgpt.com) [oai_citation:6‡everymac.com](https://everymac.com/systems/apple/macbook_pro/specs/macbook-pro-m4-max-16-core-cpu-40-core-gpu-16-2024-specs.html?utm_source=chatgpt.com) [oai_citation:7‡bhphotovideo.com](https://www.bhphotovideo.com/c/product/1859577-REG/apple_mx313ll_a_16_macbook_pro_m4.html?utm_source=chatgpt.com) [oai_citation:8‡ru.wikipedia.org](https://ru.wikipedia.org/wiki/Mac_Studio?utm_source=chatgpt.com)": true,
+      "Аксессуары": ["Стоечный дисплей", "SD‑карты", "HDMI‑кабель"]
+    }
+  },
+  "warranty": "Ограниченная гарантия Apple 1 год"
+}

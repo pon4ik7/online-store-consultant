@@ -1,0 +1,93 @@
+{
+  "imgUrl": "https://example.com/apple_watch_ultra2.jpg",
+  "name": "Apple Watch Ultra2",
+  "brand": "Apple",
+  "price": 799,
+  "rating": 4.8,
+  "options": {
+    "color": ["Titanium", "Black Titanium"],
+    "size": ["49мм"],
+    "connectivity": ["GPS + Cellular"]
+  },
+  "Characteristics": {
+    "Общие характеристики": {
+      "Год выпуска": "2023",
+      "Операционная система": "watchOS11",
+      "Процессор": "AppleS9 SiP, 64‑bit Dual‑Core",
+      "Память": "64GB"
+    },
+    "Экран": {
+      "Тип экрана": "Always‑On Retina LTPO2 OLED",
+      "Диагональ": "1.92″ (49мм)",
+      "Разрешение": "502×410 px (~326ppi)",
+      "Яркость (пиковая)": "до 3000 нит",
+      "Минимальная яркость": "1 нит",
+      "Защита": "Flat sapphire crystal",
+      "Always‑On Display": true
+    },
+    "Питание и зарядка": {
+      "Аккумулятор": "Li‑Ion ~564mAh",
+      "Время работы (обычное)": "до 36ч",
+      "Режим энергосбережения": "до 72ч",
+      "Быстрая зарядка": "80% за ≈1ч"
+    },
+    "Корпус и защита": {
+      "Материалы": "Titanium Grade5 корпус, сапфировое стекло",
+      "Размеры": "49×44×14.4мм",
+      "Вес": "61.4г (натуральный) / 61.8г (чёрный)",
+      "Защита от воды": "WR100 / EN13319 (40м dive)",
+      "Пылезащита": "IP6X",
+      "Военный стандарт": "MIL‑STD810H"
+    },
+    "Связь и коммуникации": {
+      "Cellular": "LTE, eSIM",
+      "Bluetooth": "5.3",
+      "Wi‑Fi": "802.11 b/g/n (dual‑band)",
+      "GPS": "L1 + L5 (GPS, GLONASS, Galileo, QZSS, BeiDou)",
+      "NFC": true,
+      "Ultra Wideband": "2‑го поколения",
+      "ApplePay / GymKit": true
+    },
+    "Датчики и здоровье": {
+      "Оптический датчик сердцебиения": "3‑го поколения",
+      "Электрический датчик сердцебиения(ECG)": true,
+      "Датчик SpO2": true,
+      "Датчик температуры": "кожа + вода",
+      "Глубиномер + датчик температуры воды": true,
+      "Барометр / высотомер": Always‑On,
+      "Компас": true,
+      "Акселерометр (High‑G)": true,
+      "Гироскоп (HDR)": true,
+      "Ambient light sensor": true
+    },
+    "Навигация и безопасность": {
+      "Emergency SOS / аварийный вызов": true,
+      "Siren": true,
+      "Crash & Fall Detection": true,
+      "Backtrack": true
+    },
+    "Управление и интерфейс": {
+      "Action Button": true,
+      "Digital Crown с гаптикой": true,
+      "Side Button": true,
+      "Жест Double‑Tap": true,
+      "Siri on‑device": true
+    },
+    "Аудио": {
+      "Динамики": "Dual speakers",
+      "Микрофоны": "3‑микрофонный массив с шумоподавлением",
+      "Воспроизведение музыки": true
+    },
+    "Работа с активностью": {
+      "Offline карты, топографические маршруты": true,
+      "Precision Start / GPX": true,
+      "Dive Computer (до 40м)": true,
+      "Плавание / бег / вело / лыжи и др.": true,
+      "Экстренные функции и будильники": true
+    },
+    "Доступность": {
+      "VoiceOver, Zoom, RTT, AssistiveTouch": true
+    }
+  },
+  "warranty": "1 год ограниченной гарантии Apple"
+}
