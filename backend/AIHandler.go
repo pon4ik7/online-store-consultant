@@ -33,9 +33,9 @@ type Response struct {
 	} `json:"choices"`
 }
 
-func HandleUserQuery(query string, isAdmin bool, sessionID string) (string, error) {
+func HandleUserQuery(query string, isAdmin bool, sessionID string, productID string) (string, error) {
 	initialPrompt := query
-	query = ClarifyProductContext(sessionID) + query
+	query = ClarifyProductContext(sessionID, productID) + query
 	response, err := GetResponse(query, isAdmin)
 	if err != nil {
 		log.Println(err)
@@ -50,7 +50,7 @@ func HandleUserQuery(query string, isAdmin bool, sessionID string) (string, erro
 	return response, nil
 }
 
-func ClarifyProductContext(sessionID string) string {
+func ClarifyProductContext(sessionID string, productID string) string {
 	instructions := "ALWAYS KEEP IN MIND THAT: You are a friendly but professional consultant for RADAT electronics store." +
 		"Your goal is to assist customers with electronics products only (laptops, smartphones, etc.) while adhering strictly to these rules: \n" +
 		"MUST answer only questions about electronics (laptops, smartphones etc.).\n" +
@@ -99,6 +99,10 @@ func ClarifyProductContext(sessionID string) string {
 	err := db.QueryRow(query, productCategory, "%"+productName+"%").Scan(&similarProductName, &similarProductPrice,
 		&similarProductRating, &similarProductDescription, &similarProductURL, &similarProductImageURL)
 
+	productInfo, _ := getProductFromSite(productID)
+	if err != nil {
+		log.Println("ProductInfo crashed: ", productInfo)
+	}
 	// If there are no similar products, nothing will be added to the message for DeepSeek, just logs are displayed
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -122,7 +126,7 @@ func ClarifyProductContext(sessionID string) string {
 	}
 
 	instructions += FetchDialogueContext(sessionID)
-	return instructions + "QUESTION: "
+	return instructions + "Product info" + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
 }
 
 func FetchDialogueContext(sessionID string) string {

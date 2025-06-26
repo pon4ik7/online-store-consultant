@@ -2,8 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -52,7 +56,8 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	session := getOrCreateSession(w, r)
 
 	var clientMsg struct {
-		Message string `json:"message"`
+		Message   string `json:"message"`
+		ProductID string `json:"productID"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&clientMsg); err != nil {
@@ -60,8 +65,9 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	productID := strings.TrimSpace(clientMsg.ProductID)
 	log.Printf("Сообщение от %s: %s", session.ID, clientMsg.Message)
-	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID)
+	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID, productID)
 	resp := make(map[string]string)
 	if ok == nil {
 		resp["response"] = aiResponse
@@ -92,6 +98,61 @@ func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
 	}
 
 	return session
+}
+
+func getProductFromSite(productID string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("http://localhost:8080/api/products/%s", productID)
+	log.Println("GET-запрос на URL:", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("Ошибка при запросе:", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Сервер вернул статус: %d\n", resp.StatusCode)
+		return nil, fmt.Errorf("сервер вернул %d", resp.StatusCode)
+	}
+	// Читаем тело ответа в map
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func productsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id := strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/products/"), "/")
+	filename := filepath.Join("/app/data", fmt.Sprintf("product%s.json", id))
+	log.Println("Trying to open file:", filename)
+
+	file, err := os.Open(filename)
+	if err != nil {
+		log.Println("Product not found:", err)
+		http.Error(w, "Product not found", http.StatusNotFound)
+		return
+	}
+	defer file.Close()
+
+	var product map[string]interface{}
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&product)
+	if err != nil {
+		log.Println("Ошибка при декодировании файла:", err)
+		http.Error(w, "Failed to decode product data", http.StatusInternalServerError)
+		return
+	}
+
+	// Возвращаем JSON как ответ
+	w.Header().Set("Content-Type", "application/json")
+	file.Seek(0, 0)
+	http.ServeFile(w, r, filename)
 }
 
 func createNewSession(w http.ResponseWriter) Session {
