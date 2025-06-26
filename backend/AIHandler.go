@@ -99,7 +99,7 @@ func ClarifyProductContext(sessionID string, productID string) string {
 	err := db.QueryRow(query, productCategory, "%"+productName+"%").Scan(&similarProductName, &similarProductPrice,
 		&similarProductRating, &similarProductDescription, &similarProductURL, &similarProductImageURL)
 
-	productInfo, _ := getProductFromSite(productID)
+	productInfo, err := getProductFromSite(productID)
 	if err != nil {
 		log.Println("ProductInfo crashed: ", productInfo)
 	}
