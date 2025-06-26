@@ -50,7 +50,7 @@ func HandleUserQuery(query string, isAdmin bool, sessionID string, productID str
 	return response, nil
 }
 
-func ClarifyProductContext(sessionID string) string {
+func ClarifyProductContext(sessionID string, productID string) string {
 	instructions := "ALWAYS KEEP IN MIND THAT: You are friendly and professional consultant in RADAT electronics store." +
 		"Your goal is to assist customers with electronics products only (laptops, smartphones, etc.) while following rules: \n" +
 		"In case client greets you, greet him in response and ask about possible help" +
@@ -62,6 +62,7 @@ func ClarifyProductContext(sessionID string) string {
 		"You MUST NOT offer products from any other shops\n" +
 		"Avoid robotic phrases (\"Based on your query...\")\n" +
 		"Treat the CONTEXT: as our prior conversation history\n" +
+		"Treat the PRODUCT INFO: as the store assortment: " +
 		"Acknowledge past discussions naturally\n" +
 		"Reference prior interactions if appropriate\n" +
 		"For complex queries, offer step-by-step guidance (I recommend checking the size first, then I’ll assist with payment)\n" +
@@ -77,7 +78,6 @@ func ClarifyProductContext(sessionID string) string {
 		"CONTEXT:"
 
 	// The data about the product that the user is asking about - it must be obtained using HTTP-requests.
-	// TODO: Use requests to get information about the current product
 	var productName = ""
 	var productCategory = ""
 	var productDescription = ""
@@ -126,7 +126,7 @@ func ClarifyProductContext(sessionID string) string {
 	}
 
 	instructions += FetchDialogueContext(sessionID)
-	return instructions + "Product info" + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
+	return instructions + "PRODUCT INFO: " + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
 }
 
 func FetchDialogueContext(sessionID string) string {

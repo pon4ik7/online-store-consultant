@@ -303,6 +303,8 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Product not found", http.StatusNotFound)
 		return
 	}
+
+	log.Println("Successfully opened the product file:", filename)
 	defer file.Close()
 
 	var product map[string]interface{}
