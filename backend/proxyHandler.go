@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,6 +15,12 @@ import (
 	"github.com/google/uuid"
 )
 
+var (
+	ErrExistingUser    = errors.New("the user already exists")
+	ErrNotExistingUser = errors.New("the user does not exist")
+	ErrNotInfoAboutReg = errors.New("no information about the registered user")
+)
+
 // Session data type for managing sessions
 type Session struct {
 	ID         string
@@ -24,6 +31,12 @@ type Session struct {
 var (
 	sessionStore = make(map[string]Session)
 	storeMu      sync.Mutex // For locking/unlocking sessionStore
+)
+
+// TODO create the DB table with users
+var (
+	logSessionStore = make(map[string]Session)
+	logStoreMu      sync.RWMutex
 )
 
 // First (start) button for starting dialog with AIHelper
@@ -46,6 +59,53 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 	updateLastActive(session.ID)
 }
 
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Call /api/register")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+	}
+	var clientMsg struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&clientMsg); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
+
+	session, err := createLogSession(w, key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Println(fmt.Sprintf("New user %s register: %s", strings.TrimSpace(clientMsg.Login), session.ID))
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Call /api/login")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+	}
+	var clientMsg struct {
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&clientMsg); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
+	session, err := getLogSession(w, key)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Println(fmt.Sprintf("The user %s login: %s", clientMsg.Login, session.ID))
+}
+
 func messageHandler(w http.ResponseWriter, r *http.Request) {
 	// We should check that client only send data
 	if r.Method != http.MethodPost {
@@ -54,7 +114,8 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	session := getOrCreateSession(w, r)
-
+	// TODO create the different logic for register and not register users
+	//isRegistered := isRegister(r)
 	var clientMsg struct {
 		Message   string `json:"message"`
 		ProductID string `json:"productID"`
@@ -79,6 +140,70 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	updateLastActive(session.ID)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func isRegister(r *http.Request) (bool, error) {
+	cookie, err := r.Cookie("isRegister")
+	if err != nil {
+		return false, ErrNotExistingUser
+	}
+	if cookie.Value == "true" {
+		return true, nil
+	}
+	return false, nil
+}
+
+func getLogSession(w http.ResponseWriter, key string) (Session, error) {
+	logStoreMu.Lock()
+	session, exists := logSessionStore[key]
+	logStoreMu.Unlock()
+	if !exists {
+		return Session{}, ErrNotExistingUser
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    session.ID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "true",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	return session, nil
+}
+
+func createLogSession(w http.ResponseWriter, key string) (Session, error) {
+	logStoreMu.Lock()
+	_, exists := logSessionStore[key]
+	logStoreMu.Unlock()
+	if exists {
+		return Session{}, ErrExistingUser
+	}
+	session := createNewSession(w)
+	logStoreMu.Lock()
+	logSessionStore[key] = session
+	logStoreMu.Unlock()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    session.ID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "true",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	return session, nil
 }
 
 func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
@@ -178,6 +303,13 @@ func createNewSession(w http.ResponseWriter) Session {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_id",
 		Value:    newID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "false",
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
