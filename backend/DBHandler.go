@@ -119,7 +119,7 @@ func returnSessionMessages(sessionID string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	messagesCache := make([]string, 10)
+	messagesCache := make([]string, 0)
 	for rows.Next() {
 		var msg, response string
 		if err := rows.Scan(&msg, &response); err != nil {
