@@ -38,8 +38,53 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Привет! Я твой AI-консультант. Задавай вопросы!"}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+
+	err := json.NewEncoder(w).Encode(resp)
+	if err != nil {
+		log.Fatalf("Error encounter while responsing from api/start: %v", err)
+	}
+
 	updateLastActive(session.ID)
+}
+
+// Function that handles the end of the session
+func endHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		log.Printf("Error getting session cookie: %v", err)
+		return
+	}
+
+	resp := make(map[string]string)
+
+	_, ok := sessionStore[cookie.Value]
+
+	if cookie.Value == "" || !ok {
+		resp["response"] = "У вас нет никаких запущенных сессий"
+		log.Printf("The user does not have any session running")
+	} else {
+		sessionID := sessionStore[cookie.Value].ID
+		log.Printf("The session %s has been ended by the user", sessionID)
+
+		resp["response"] = "Спасибо, что воспользовались нашим консультантом." +
+			" Пожалуйста, оцените сессию "
+
+		SaveDialogueContext(sessionID, db)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(resp)
+
+	if err != nil {
+		log.Fatalf("Error encounter while responsing from api/end: %v", err)
+	}
+
 }
 
 func messageHandler(w http.ResponseWriter, r *http.Request) {
