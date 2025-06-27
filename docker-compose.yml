@@ -21,7 +21,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile.backend  # Новый Dockerfile для backend
+      dockerfile: backend.Dockerfile  # Новый Dockerfile для backend
     container_name: go-app-container
     environment:
       DATABASE_URL: "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
@@ -38,7 +38,7 @@ services:
   bot:
     build:
       context: .
-      dockerfile: Dockerfile.bot
+      dockerfile: bot.Dockerfile
     container_name: tg-bot-container
     environment:
       DATABASE_URL: "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
