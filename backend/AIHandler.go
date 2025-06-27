@@ -51,9 +51,9 @@ func HandleUserQuery(query string, isAdmin bool, sessionID string, productID str
 }
 
 func ClarifyProductContext(sessionID string, productID string) string {
-	instructions := "ALWAYS KEEP IN MIND THAT: You are a friendly but professional consultant for RADAT electronics store." +
-		"Your goal is to assist customers with electronics products only (laptops, smartphones, etc.) while adhering strictly to these rules: \n" +
-		"MUST answer only questions about electronics (laptops, smartphones etc.).\n" +
+	instructions := "ALWAYS KEEP IN MIND THAT: You are friendly and professional consultant in RADAT electronics store." +
+		"Your goal is to assist customers with electronics products only (laptops, smartphones, etc.) while following rules: \n" +
+		"In case client greets you, greet him in response and ask about possible help" +
 		"MUST NOT respond to off-topic queries (e.g., software, competitors, slang requests).\n" +
 		"Match the user’s language QUESTION: (Russian/English).\n" +
 		"Always address the customer with formal \"Вы\" (Russian) or \"you\" in a respectful tone (English)\n" +
@@ -62,6 +62,7 @@ func ClarifyProductContext(sessionID string, productID string) string {
 		"You MUST NOT offer products from any other shops\n" +
 		"Avoid robotic phrases (\"Based on your query...\")\n" +
 		"Treat the CONTEXT: as our prior conversation history\n" +
+		"Treat the PRODUCT INFO: as the store assortment: " +
 		"Acknowledge past discussions naturally\n" +
 		"Reference prior interactions if appropriate\n" +
 		"For complex queries, offer step-by-step guidance (I recommend checking the size first, then I’ll assist with payment)\n" +
@@ -77,7 +78,6 @@ func ClarifyProductContext(sessionID string, productID string) string {
 		"CONTEXT:"
 
 	// The data about the product that the user is asking about - it must be obtained using HTTP-requests.
-	// TODO: Use requests to get information about the current product
 	var productName = ""
 	var productCategory = ""
 	var productDescription = ""
@@ -101,8 +101,9 @@ func ClarifyProductContext(sessionID string, productID string) string {
 
 	productInfo, err := getProductFromSite(productID)
 	if err != nil {
-		log.Println("ProductInfo crashed: ", productInfo)
+		log.Println("Error encountered while trying to retrieve product info: ", err)
 	}
+
 	// If there are no similar products, nothing will be added to the message for DeepSeek, just logs are displayed
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -126,7 +127,7 @@ func ClarifyProductContext(sessionID string, productID string) string {
 	}
 
 	instructions += FetchDialogueContext(sessionID)
-	return instructions + "Product info" + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
+	return instructions + "PRODUCT INFO: " + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
 }
 
 func FetchDialogueContext(sessionID string) string {
@@ -135,7 +136,7 @@ func FetchDialogueContext(sessionID string) string {
 		log.Printf("The error encountered while fetching: %v", err)
 		return ""
 	}
-	context := "\n"
+	context := ""
 	for _, message := range messagesCache {
 		context += message + "\n"
 	}
@@ -214,6 +215,11 @@ func GetResponse(query string, isAdmin bool) (string, error) {
 func SaveDialogueContext(sessionIDStr string, db *sql.DB) {
 	// This request works at the end of the session - it preserves its context
 	wholeDialogue := FetchDialogueContext(sessionIDStr)
+	if wholeDialogue == "" {
+		log.Printf("User did not send any messages in the session: %s", sessionIDStr)
+		return
+	}
+
 	instruction := "EXTRACT KEYWORDS from this user-consultant dialogue, you MUST preserve core meaning +" +
 		"so that consultant would be able to recall what was the dialogue about. You should use no more than 25 words" +
 		"DO NOT include ANY specifiers (e.g. keywords: etc.) only words, nothing else" +

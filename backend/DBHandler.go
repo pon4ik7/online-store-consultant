@@ -40,10 +40,20 @@ func checkInactiveSessions() {
 			continue
 		}
 
+		sessionIDStr := sessionID.String()
+
 		// If last active time is older than 15 minutes and context is empty, save context
 		if time.Since(lastActive) > 15*time.Minute && context == "" {
 			log.Printf("Session %s has been inactive for 15 minutes, saving context", sessionID)
-			SaveDialogueContext(sessionID.String(), db)
+			if session, _ := sessionStore[sessionIDStr]; !session.isRegistered {
+				log.Printf("The session %s was with unregistered client", sessionID)
+				log.Printf("Deleting session messages for the session %s", sessionID)
+				log.Printf("Deleting the session %s: ", sessionID)
+				delete(sessionStore, sessionIDStr)
+			} else {
+				log.Printf("The session %s was with the registered client, nothing to be done", sessionID)
+			}
+			SaveDialogueContext(sessionIDStr, db)
 		}
 	}
 }
@@ -115,7 +125,7 @@ func returnSessionMessages(sessionID string) ([]string, error) {
 	}
 	defer rows.Close()
 
-	messagesCache := make([]string, 10)
+	messagesCache := make([]string, 0)
 	for rows.Next() {
 		var msg, response string
 		if err := rows.Scan(&msg, &response); err != nil {
