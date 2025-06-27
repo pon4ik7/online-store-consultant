@@ -10,6 +10,16 @@ import (
 	"strconv"
 )
 
+type InlineKeyboardButton struct {
+	Text         string `json:"text"`
+	CallbackData string `json:"callback_data,omitempty"`
+	URL          string `json:"url,omitempty"`
+}
+
+type InlineKeyboardMarkup struct {
+	InlineKeyboard [][]InlineKeyboardButton `json:"inline_keyboard"`
+}
+
 type Client struct {
 	host     string
 	basePath string
@@ -27,6 +37,44 @@ func New(host string, token string) *Client {
 		basePath: newBasePath(token),
 		client:   http.Client{},
 	}
+}
+
+func (c *Client) SendMessageWithInlineKeyboard(chatID int, text string, keyboard [][]InlineKeyboardButton) error {
+	keyboardMarkup := InlineKeyboardMarkup{
+		InlineKeyboard: keyboard,
+	}
+
+	markupJSON, err := json.Marshal(keyboardMarkup)
+	if err != nil {
+		return err
+	}
+
+	q := url.Values{}
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("text", text)
+	q.Add("reply_markup", string(markupJSON))
+
+	_, err = c.doRequest(sendMessageMethod, q)
+	if err != nil {
+		return e.Wrap("can't send message with inline keyboard", err)
+	}
+
+	return nil
+}
+
+func (c *Client) AnswerCallbackQuery(callbackQueryID string, text string) error {
+	q := url.Values{}
+	q.Add("callback_query_id", callbackQueryID)
+	if text != "" {
+		q.Add("text", text)
+	}
+
+	_, err := c.doRequest("answerCallbackQuery", q)
+	if err != nil {
+		return e.Wrap("can't answer callback query", err)
+	}
+
+	return nil
 }
 
 func newBasePath(token string) string {

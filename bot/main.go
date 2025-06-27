@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -48,20 +47,4 @@ func main() {
 	if err := consumer.Start(); err != nil {
 		log.Fatal("service is stopped", err)
 	}
-}
-
-func mustToken() string {
-	token := flag.String(
-		"tg-bot-token",
-		"",
-		"token for access to telegram bot",
-	)
-
-	flag.Parse()
-
-	if *token == "" {
-		log.Fatal("token is not specified")
-	}
-
-	return *token
 }

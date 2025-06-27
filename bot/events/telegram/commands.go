@@ -1,6 +1,7 @@
 package telegram
 
 import (
+	"bot/clients/telegram"
 	"bytes"
 	"encoding/json"
 	"log"
@@ -55,7 +56,7 @@ func (p *Processor) doCmd(text string, chatID int) error {
 
 			delete(clients, chatID)
 
-			return p.sendResponse(chatID, response["response"])
+			return p.sendResponseWithNumberButtons(chatID, response["response"])
 		}
 	} else if strings.HasPrefix(text, RegisterCmd) {
 		if client, ok := clients[chatID]; !ok {
@@ -154,6 +155,20 @@ func (p *Processor) doCmd(text string, chatID int) error {
 
 }
 
+func (p *Processor) sendResponseWithNumberButtons(chatID int, text string) error {
+	keyboard := [][]telegram.InlineKeyboardButton{
+		{
+			{Text: "1", CallbackData: "1"},
+			{Text: "2", CallbackData: "2"},
+			{Text: "3", CallbackData: "3"},
+			{Text: "4", CallbackData: "4"},
+			{Text: "5", CallbackData: "5"},
+		},
+	}
+
+	return p.tg.SendMessageWithInlineKeyboard(chatID, text, keyboard)
+}
+
 func (p *Processor) sendHelp(chatID int) error {
 	return p.tg.SendMessage(chatID, msgHelp)
 }
@@ -172,4 +187,8 @@ func (p *Processor) sendResponse(chatID int, response string) error {
 
 func (p *Processor) sendHello(chatID int) error {
 	return p.tg.SendMessage(chatID, msgHello)
+}
+
+func (p *Processor) sendFeedback(chatID int) error {
+	return p.tg.SendMessage(chatID, msgFeedback)
 }

@@ -49,10 +49,33 @@ func (p *Processor) Fetch(limit int) ([]events.Event, error) {
 	return res, nil
 }
 
+func (p *Processor) processCallback(event events.Event) error {
+	meta, err := meta(event)
+	if err != nil {
+		return e.Wrap("can't process callback", err)
+	}
+
+	switch event.Text {
+	case "1":
+		return p.sendFeedback(meta.ChatID)
+	case "2":
+		return p.sendFeedback(meta.ChatID)
+	case "3":
+		return p.sendFeedback(meta.ChatID)
+	case "4":
+		return p.sendFeedback(meta.ChatID)
+	case "5":
+		return p.sendFeedback(meta.ChatID)
+	}
+	return ErrUnknownEventType
+}
+
 func (p *Processor) Process(event events.Event) error {
 	switch event.Type {
 	case events.Message:
 		return p.processMessage(event)
+	case events.CallbackQuery:
+		return p.processCallback(event)
 	default:
 		return e.Wrap("can't process message", ErrUnknownEventType)
 	}
@@ -81,6 +104,17 @@ func meta(event events.Event) (Meta, error) {
 }
 
 func event(upd telegram.Update) events.Event {
+	if upd.CallbackQuery != nil {
+		return events.Event{
+			Type: events.CallbackQuery,
+			Text: upd.CallbackQuery.Data,
+			Meta: Meta{
+				ChatID:   upd.CallbackQuery.Message.Chat.ID,
+				Username: upd.CallbackQuery.From.Username,
+			},
+		}
+	}
+
 	updType := fetchType(upd)
 
 	res := events.Event{
