@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrExistingUser    = errors.New("Пользователь с такими данными уже зарегестрирован")
+	ErrExistingUser    = errors.New("Пользователь с такими данными уже зарегистрирован")
 	ErrNotExistingUser = errors.New("Пользователя с такими данными не существует. Сначала завершите регистрацию")
 	ErrNotInfoAboutReg = errors.New("no information about the registered user")
 )

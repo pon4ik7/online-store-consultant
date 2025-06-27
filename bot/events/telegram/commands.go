@@ -58,6 +58,74 @@ func (p *Processor) doCmd(text string, chatID int) error {
 
 			return p.sendResponseWithNumberButtons(chatID, response["response"])
 		}
+	} else if strings.HasPrefix(text, RegisterCmd) {
+		if client, ok := clients[chatID]; !ok {
+			return p.sendStartInvalid(chatID)
+		} else {
+			parts := strings.Fields(text)
+			if len(parts) != 3 {
+				return p.sendResponse(chatID, "Пожалуйста, убедитесь в правильности регистрации. /register логин пароль")
+			}
+			login := parts[1]
+			password := parts[2]
+			message := map[string]string{
+				"login":    login,
+				"password": password,
+			}
+
+			jsonData, _ := json.Marshal(message)
+
+			registerReq, _ := http.NewRequest("POST", "http://localhost:8080/api/register", bytes.NewBuffer(jsonData))
+			registerReq.Header.Set("Content-Type", "application/json")
+
+			registerResp, err := client.Do(registerReq)
+			if err != nil {
+				log.Printf("Error with /api/register: %v", err)
+				return p.sendResponse(chatID, "Возникли технические неполадки, пожалуйста, попробуйте позже")
+			}
+
+			defer registerResp.Body.Close()
+
+			var response map[string]string
+			json.NewDecoder(registerResp.Body).Decode(&response)
+
+			return p.sendResponse(chatID, response["response"])
+		}
+
+	} else if strings.HasPrefix(text, SignInCmd) {
+		if client, ok := clients[chatID]; !ok {
+			return p.sendStartInvalid(chatID)
+		} else {
+			parts := strings.Fields(text)
+			if len(parts) != 3 {
+				return p.sendResponse(chatID, "Пожалуйста, убедитесь в правильности авторизации. /sign_in логин пароль")
+			}
+
+			login := parts[1]
+			password := parts[2]
+			message := map[string]string{
+				"login":    login,
+				"password": password,
+			}
+
+			jsonData, _ := json.Marshal(message)
+
+			registerReq, _ := http.NewRequest("POST", "http://localhost:8080/api/login", bytes.NewBuffer(jsonData))
+			registerReq.Header.Set("Content-Type", "application/json")
+
+			registerResp, err := client.Do(registerReq)
+			if err != nil {
+				log.Printf("Error with /api/register: %v", err)
+				return p.sendResponse(chatID, "Возникли технические неполадки, пожалуйста, попробуйте позже")
+			}
+
+			defer registerResp.Body.Close()
+
+			var response map[string]string
+			json.NewDecoder(registerResp.Body).Decode(&response)
+
+			return p.sendResponse(chatID, response["response"])
+		}
 
 	} else {
 		if client, ok := clients[chatID]; !ok {
@@ -73,8 +141,8 @@ func (p *Processor) doCmd(text string, chatID int) error {
 
 			msgResp, err := client.Do(msgReq)
 			if err != nil {
-				log.Printf("Ошибка при /api/message: %v", err)
-				return p.sendResponse(chatID, "Some technical issues have occurred, please, try again later")
+				log.Printf("Error with /api/message: %v", err)
+				return p.sendResponse(chatID, "Возникли технические неполадки, пожалуйста, попробуйте позже")
 			}
 			defer msgResp.Body.Close()
 
