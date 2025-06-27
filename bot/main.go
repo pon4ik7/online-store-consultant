@@ -1,14 +1,12 @@
 package main
 
 import (
-	"github.com/joho/godotenv"
-	"log"
-	"os"
-	"regexp"
-
 	tgClient "bot/clients/telegram"
 	"bot/consumer/event-consumer"
 	"bot/events/telegram"
+	"github.com/joho/godotenv"
+	"log"
+	"os"
 )
 
 const (
@@ -16,21 +14,11 @@ const (
 	batchSize = 100
 )
 
-const projectDirName = "online-store-consultant"
-
-func loadEnv() {
-	projectName := regexp.MustCompile(`^(.*` + projectDirName + `)`)
-	currentWorkDirectory, _ := os.Getwd()
-	rootPath := projectName.Find([]byte(currentWorkDirectory))
-	err := godotenv.Load(string(rootPath) + `/.env`)
-
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-}
-
 func main() {
-	loadEnv()
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	botToken, exists := os.LookupEnv("BOT_TOKEN")
 	if !exists {
 		log.Fatal("BOT_TOKEN environment variable not set")
@@ -40,7 +28,7 @@ func main() {
 		tgClient.New(tgBotHost, botToken),
 	)
 
-	log.Print("service started")
+	log.Print("telegram bot started")
 
 	consumer := event_consumer.New(eventsProcessor, eventsProcessor, batchSize)
 
