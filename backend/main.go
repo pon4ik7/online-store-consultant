@@ -12,6 +12,7 @@ import (
 
 var db *sql.DB
 
+// Function that initializes the DB connection
 func init() {
 	var err error
 	const connection = "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
@@ -23,6 +24,7 @@ func init() {
 	go startSessionChecker()
 }
 
+// Function to apply migrations before working with DB
 func runMigrations() {
 	migrationPath := "file:///migrations"
 	const connection = "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
@@ -36,6 +38,7 @@ func runMigrations() {
 	log.Println("Migrations have been successfully applied!")
 }
 
+// Entry point. Initializes server and DB, ensures endpoints are handled appropriately
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -51,6 +54,6 @@ func main() {
 	http.HandleFunc("/api/register", registerHandler)
 	http.HandleFunc("/api/login", loginHandler)
 
-	log.Println("Сервер запущен на http://localhost:8080")
+	log.Println("Server is available on http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

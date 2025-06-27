@@ -101,8 +101,9 @@ func ClarifyProductContext(sessionID string, productID string) string {
 
 	productInfo, err := getProductFromSite(productID)
 	if err != nil {
-		log.Println("ProductInfo crashed: ", productInfo)
+		log.Println("Error encountered while trying to retrieve product info: ", err)
 	}
+
 	// If there are no similar products, nothing will be added to the message for DeepSeek, just logs are displayed
 	if err != nil {
 		if err == sql.ErrNoRows {

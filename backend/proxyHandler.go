@@ -16,30 +16,29 @@ import (
 )
 
 var (
-	ErrExistingUser    = errors.New("the user already exists")
-	ErrNotExistingUser = errors.New("the user does not exist")
+	ErrExistingUser    = errors.New("Пользователь с такими данными уже зарегестрирован")
+	ErrNotExistingUser = errors.New("Пользователя с такими данными не существует. Сначала завершите регистрацию")
 	ErrNotInfoAboutReg = errors.New("no information about the registered user")
 )
 
 // Session data type for managing sessions
 type Session struct {
-	ID         string
-	LastActive time.Time
-	Context    string // Save some data about this dialog mb
+	ID           string
+	LastActive   time.Time
+	isRegistered bool
+	Context      string
 }
-
-var (
-	sessionStore = make(map[string]Session)
-	storeMu      sync.Mutex // For locking/unlocking sessionStore
-)
 
 // TODO create the DB table with users
 var (
-	logSessionStore = make(map[string]Session)
-	logStoreMu      sync.RWMutex
+	sessionStore = make(map[string]Session)
+	storeMu      sync.Mutex // For locking/unlocking sessionStore
+
+	registeredClientsSessions = make(map[string]Session)
+	logStoreMu                sync.RWMutex
 )
 
-// First (start) button for starting dialog with AIHelper
+// Function that initializes the session with the consultant and attach the unique identifier to it
 func startHandler(w http.ResponseWriter, r *http.Request) {
 	// We should check that client only send data
 	if r.Method != http.MethodPost {
@@ -47,20 +46,16 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := getOrCreateSession(w, r)
+	session := getInitialSession(w, r)
 
 	log.Println("Новая сессия: " + session.ID)
-	log.Print("Кэшируем сообщения пользователя")
-	resp := map[string]string{
-		"message": "Привет! Я твой AI-консультант. Задавай вопросы!"}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	log.Print("Caching the user messages")
 	updateLastActive(session.ID)
 }
 
+// Function to handle the user register action
 func registerHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Call /api/register")
+	log.Println("Calling /api/register")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 	}
@@ -75,16 +70,17 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
 
-	session, err := createLogSession(w, key)
+	session, err := createAuthorizedSession(w, key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println(fmt.Sprintf("New user %s register: %s", strings.TrimSpace(clientMsg.Login), session.ID))
+	log.Println(fmt.Sprintf("New user %s is register: %s", strings.TrimSpace(clientMsg.Login), session.ID))
 }
 
+// Function to handle signing in
 func loginHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("Call /api/login")
+	log.Println("Calling /api/login")
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
 	}
@@ -98,12 +94,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
-	session, err := getLogSession(w, key)
+	session, err := getAuthorizedSession(w, key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println(fmt.Sprintf("The user %s login: %s", clientMsg.Login, session.ID))
+
+	log.Println(fmt.Sprintf("The user %s is loged in for the session: %s", clientMsg.Login, session.ID))
 }
 
 // Function that handles the end of the session
@@ -146,6 +143,7 @@ func endHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// Function to handle the main flow of the user dialogue
 func messageHandler(w http.ResponseWriter, r *http.Request) {
 	// We should check that client only send data
 	if r.Method != http.MethodPost {
@@ -153,7 +151,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := getOrCreateSession(w, r)
+	session := getInitialSession(w, r)
 	// TODO create the different logic for register and not register users
 	//isRegistered := isRegister(r)
 	var clientMsg struct {
@@ -167,7 +165,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	productID := strings.TrimSpace(clientMsg.ProductID)
-	log.Printf("Сообщение от %s: %s", session.ID, clientMsg.Message)
+	log.Printf("Message from %s: %s", session.ID, clientMsg.Message)
 	aiResponse, ok := HandleUserQuery(clientMsg.Message, false, session.ID, productID)
 	resp := make(map[string]string)
 	if ok == nil {
@@ -182,111 +180,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func isRegister(r *http.Request) (bool, error) {
-	cookie, err := r.Cookie("isRegister")
-	if err != nil {
-		return false, ErrNotExistingUser
-	}
-	if cookie.Value == "true" {
-		return true, nil
-	}
-	return false, nil
-}
-
-func getLogSession(w http.ResponseWriter, key string) (Session, error) {
-	logStoreMu.Lock()
-	session, exists := logSessionStore[key]
-	logStoreMu.Unlock()
-	if !exists {
-		return Session{}, ErrNotExistingUser
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    session.ID,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     "isRegistered",
-		Value:    "true",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-	})
-
-	return session, nil
-}
-
-func createLogSession(w http.ResponseWriter, key string) (Session, error) {
-	logStoreMu.Lock()
-	_, exists := logSessionStore[key]
-	logStoreMu.Unlock()
-	if exists {
-		return Session{}, ErrExistingUser
-	}
-	session := createNewSession(w)
-	logStoreMu.Lock()
-	logSessionStore[key] = session
-	logStoreMu.Unlock()
-	http.SetCookie(w, &http.Cookie{
-		Name:     "session_id",
-		Value:    session.ID,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-	})
-	http.SetCookie(w, &http.Cookie{
-		Name:     "isRegistered",
-		Value:    "true",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
-	})
-	return session, nil
-}
-
-func getOrCreateSession(w http.ResponseWriter, r *http.Request) Session {
-	cookie, err := r.Cookie("session_id") //The user was in our cite?
-
-	if err != nil || cookie.Value == "" { //If no create new ID
-		return createNewSession(w)
-	}
-
-	storeMu.Lock()
-	session, exists := sessionStore[cookie.Value] //Get the ID from map if user already was on our cite
-	storeMu.Unlock()
-
-	if !exists {
-		log.Printf("The old session %s is not found, creating a new one", cookie.Value)
-		return createNewSession(w)
-	}
-
-	return session
-}
-
-func getProductFromSite(productID string) (map[string]interface{}, error) {
-	url := fmt.Sprintf("http://localhost:8080/api/products/%s", productID)
-	log.Println("GET-запрос на URL:", url)
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println("Ошибка при запросе:", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("Сервер вернул статус: %d\n", resp.StatusCode)
-		return nil, fmt.Errorf("сервер вернул %d", resp.StatusCode)
-	}
-	// Читаем тело ответа в map
-	var data map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
+// Function to handle the GET requests about product data
 func productsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
@@ -322,12 +216,132 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, filename)
 }
 
-func createNewSession(w http.ResponseWriter) Session {
+// Function used to differentiate authorized and non-authorized users
+func isRegistered(r *http.Request) (bool, error) {
+	cookie, err := r.Cookie("isRegister")
+	if err != nil {
+		return false, ErrNotExistingUser
+	}
+
+	if cookie.Value == "true" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// Function to get session with an authorized user
+func getAuthorizedSession(w http.ResponseWriter, key string) (Session, error) {
+	logStoreMu.Lock()
+	session, exists := registeredClientsSessions[key]
+	logStoreMu.Unlock()
+	if !exists {
+		log.Printf("No attached session for an authorized client %s exist", key)
+		return Session{}, ErrNotExistingUser
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    session.ID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "true",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	return session, nil
+}
+
+// Function to create a session for a newly registered user
+func createAuthorizedSession(w http.ResponseWriter, key string) (Session, error) {
+	logStoreMu.Lock()
+	session, exists := registeredClientsSessions[key]
+	logStoreMu.Unlock()
+	if exists {
+		return session, ErrExistingUser
+	}
+
+	newSession := createNewInitialSession(w)
+	newSession.isRegistered = true
+	logStoreMu.Lock()
+	registeredClientsSessions[key] = newSession
+	logStoreMu.Unlock()
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    newSession.ID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "true",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+	return newSession, nil
+}
+
+// Function to create or get the general session without information regarding authorization
+func getInitialSession(w http.ResponseWriter, r *http.Request) Session {
+
+	cookie, err := r.Cookie("session_id") //The user was in our cite?
+
+	if err != nil || cookie.Value == "" { //If no create new ID
+		return createNewInitialSession(w)
+	}
+
+	storeMu.Lock()
+	session, exists := sessionStore[cookie.Value] //Get the ID from map if user already was on our cite
+	storeMu.Unlock()
+
+	if !exists {
+		log.Printf("The old session %s is not found, creating a new one", cookie.Value)
+		return createNewInitialSession(w)
+	}
+
+	return session
+}
+
+// Function used to fetch product data available at the shop from json files
+func getProductFromSite(productID string) (map[string]interface{}, error) {
+	url := fmt.Sprintf("http://localhost:8080/api/products/%s", productID)
+	log.Println("GET-request on URL:", url)
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("Error while requesting:", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("Server returned status: %d\n", resp.StatusCode)
+		return nil, fmt.Errorf("Server returned: %d", resp.StatusCode)
+	}
+	// Читаем тело ответа в map
+	var data map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// Function to initialize the general session with the client
+func createNewInitialSession(w http.ResponseWriter) Session {
 	newID := uuid.New().String()
 	session := Session{
-		ID:         newID,
-		LastActive: time.Now(),
-		Context:    "",
+		ID:           newID,
+		LastActive:   time.Now(),
+		isRegistered: false,
+		Context:      "",
 	}
 
 	_, err := db.Exec(`
@@ -349,6 +363,7 @@ func createNewSession(w http.ResponseWriter) Session {
 		HttpOnly: true,
 		Secure:   false,
 	})
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "isRegistered",
 		Value:    "false",
@@ -359,7 +374,7 @@ func createNewSession(w http.ResponseWriter) Session {
 
 	err = createSessionMessagesTable(newID)
 	if err != nil {
-		log.Printf("Error creating table for session %s", newID)
+		log.Fatalf("Error creating table for session %s", newID)
 	}
 
 	return session
