@@ -66,7 +66,7 @@ container_scanning:
     - build
 unit-tests:
   stage: test
-  image: golang:1.21
+  image: golang:1.24.3
   script:
     - go mod tidy
     - go test -v -coverprofile=coverage.out ./...
@@ -81,7 +81,7 @@ unit-tests:
 
 integration-tests:
   stage: test
-  image: golang:1.21
+  image: golang:1.24.3
   script:
     - go mod tidy
-    - go test -v ./... || true
+    - go test -v ./tests/integration || true
