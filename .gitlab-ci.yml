@@ -34,7 +34,7 @@ container_scanning:
     FULL_IMAGE_NAME: $HARBOR_HOST/$HARBOR_PROJECT/$APP:latest
   script:
     - trivy --version
-    - time trivy image --clear-cache
+    - trivy clean --scan-cache
     - time trivy image --download-db-only --no-progress --cache-dir .trivycache/
     - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --format template --template "@/contrib/gitlab.tpl" --output "$CI_PROJECT_DIR/gl-container-scanning-report.json" "$FULL_IMAGE_NAME"
     - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress "$FULL_IMAGE_NAME"
