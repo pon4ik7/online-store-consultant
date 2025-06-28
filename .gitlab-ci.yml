@@ -6,6 +6,7 @@ stages:
   - lint
   - build
   - test
+  - qa
 
 lint-job:
   stage: lint
@@ -64,6 +65,7 @@ container_scanning:
     - docker
   needs:
     - build
+
 unit-tests:
   stage: test
   image: golang:1.24.3
@@ -84,4 +86,31 @@ integration-tests:
   image: golang:1.24.3
   script:
     - go mod tidy
-    - go test -v ./tests/integration || true
+    - go test -v ./tests/integration
+
+container_scanning:
+  stage: qa
+  image:
+    name: $HARBOR_HOST/docker-hub-cache/aquasec/trivy:latest
+    entrypoint: [""]
+  variables:
+    GIT_STRATEGY: none
+    TRIVY_USERNAME: "$HARBOR_USERNAME"
+    TRIVY_PASSWORD: "$HARBOR_PASSWORD"
+    TRIVY_AUTH_URL: "$HARBOR_HOST"
+    FULL_IMAGE_NAME: $HARBOR_HOST/$HARBOR_PROJECT/$APP:latest
+  script:
+    - trivy --version
+    - trivy clean --scan-cache
+    - trivy image --download-db-only --no-progress --cache-dir .trivycache/
+    - trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --format template --template "@/contrib/gitlab.tpl" --output "$CI_PROJECT_DIR/gl-container-scanning-report.json" "$FULL_IMAGE_NAME"
+    - trivy image --exit-code 1 --cache-dir .trivycache/ --severity CRITICAL --no-progress "$FULL_IMAGE_NAME"
+  cache:
+    paths:
+      - .trivycache/
+  artifacts:
+    when: always
+    reports:
+      container_scanning: gl-container-scanning-report.json
+  needs:
+    - build
