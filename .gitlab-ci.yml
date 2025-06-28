@@ -84,4 +84,4 @@ integration-tests:
   image: golang:1.21
   script:
     - go mod tidy
-    - go test -v ./tests/integration || true
+    - go test -v ./... || true
