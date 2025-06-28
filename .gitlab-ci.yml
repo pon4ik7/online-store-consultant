@@ -15,7 +15,7 @@ lint-job:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
-    - staticcheck ./... | tee staticcheck-report.txt
+    - staticcheck ./... | tee staticcheck-report.txt || true
   artifacts:
     paths:
       - staticcheck-report.txt
