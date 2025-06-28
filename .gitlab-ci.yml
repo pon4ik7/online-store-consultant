@@ -8,6 +8,7 @@ stages:
   - test
   - qa
 
+# Linting stage using staticcheck
 lint-job:
   stage: lint
   image: golang:1.24.3
@@ -15,12 +16,24 @@ lint-job:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
+    # Run staticcheck and convert to JUnit format using a small converter script
     - staticcheck ./... | tee staticcheck-report.txt || true
+    - mkdir -p reports
+    - awk '{
+        split($0, a, ":");
+        file=a[1]; line=a[2]; msg=substr($0, index($0,$3));
+        printf("<testcase classname=\"staticcheck\" name=\"%s\"><failure>%s:%s %s</failure></testcase>\n", file, file, line, msg);
+      }' staticcheck-report.txt > reports/staticcheck.xml
+    - echo "<testsuites><testsuite name=\"staticcheck\">" | cat - reports/staticcheck.xml <(echo "</testsuite></testsuites>") > junit-staticcheck.xml
   artifacts:
     paths:
       - staticcheck-report.txt
+      - junit-staticcheck.xml
+    reports:
+      junit: junit-staticcheck.xml
     expire_in: 1 week
 
+# Docker image build and push
 build:
   stage: build
   image: docker:24.0.5
@@ -36,6 +49,7 @@ build:
     - docker push $HARBOR_HOST/$HARBOR_PROJECT/$APP:$CI_JOB_ID
     - docker push $HARBOR_HOST/$HARBOR_PROJECT/$APP:latest
 
+# Container vulnerability scanning with Trivy
 container_scanning:
   stage: test
   image:
@@ -66,6 +80,7 @@ container_scanning:
   needs:
     - build
 
+# Unit testing with Go and coverage report in Cobertura format
 unit-tests:
   stage: test
   image: golang:1.24.3
@@ -86,6 +101,7 @@ unit-tests:
       - coverage.xml
     expire_in: 1 week
 
+# Integration tests
 integration-tests:
   stage: test
   image: golang:1.24.3
@@ -93,6 +109,7 @@ integration-tests:
     - go mod tidy
     - go test -v ./DB
 
+# Final QA stage duplicate container scanning (optional, maybe keep one)
 qa_scanning:
   stage: qa
   image:
