@@ -21,7 +21,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: backend.Dockerfile  # Новый Dockerfile для backend
+      dockerfile: backend.Dockerfile
     container_name: go-app-container
     environment:
       DATABASE_URL: "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
