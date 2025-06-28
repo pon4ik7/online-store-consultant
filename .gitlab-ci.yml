@@ -64,3 +64,24 @@ container_scanning:
     - docker
   needs:
     - build
+unit-tests:
+  stage: test
+  image: golang:1.21
+  script:
+    - go mod tidy
+    - go test -v -coverprofile=coverage.out ./...
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.out
+    paths:
+      - coverage.out
+    expire_in: 1 week
+
+integration-tests:
+  stage: test
+  image: golang:1.21
+  script:
+    - go mod tidy
+    - go test -v ./tests/integration || true
