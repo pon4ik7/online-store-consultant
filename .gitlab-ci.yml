@@ -3,8 +3,24 @@ variables:
   APP: "my-app"
 
 stages:
+  - lint
   - build
   - test
+
+lint-job:
+stage: lint
+image: golang:1.21  # или твоя версия
+before_script:
+  - go install golang.org/x/lint/golint@latest
+  - export PATH=$PATH:$(go env GOPATH)/bin 
+script:
+  - golint ./... > golint-report.txt || true 
+artifacts:
+  reports:
+    dotenv: golint-report.txt
+  paths:
+    - golint-report.txt
+  expire_in: 1 week
 
 build:
   stage: build
