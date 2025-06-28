@@ -8,12 +8,17 @@ import (
 	_ "github.com/jackc/pgx/v5"
 	"log"
 	"net/http"
+	"os"
 )
 
 var db *sql.DB
 
 // Function that initializes the DB connection
 func init() {
+	// println("DISABLE_INIT =", os.Getenv("DISABLE_INIT")) Проверка для теста
+	if os.Getenv("DISABLE_INIT") == "1" { // Отключает вызов init при DISABLE_INIT == 1
+		return // DISABLE_INIT = 1 задается вручну при запуске программы
+	} // (см. unit_test.go)
 	var err error
 	const connection = "postgres://radat:radatSWP25@postgres:5432/radatDB?sslmode=disable"
 	db, err = sql.Open("postgres", connection)
