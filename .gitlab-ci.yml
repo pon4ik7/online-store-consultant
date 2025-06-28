@@ -10,15 +10,15 @@ stages:
 
 lint-job:
   stage: lint
-  image: golang:1.21
+  image: golang:1.24.3
   before_script:
-    - go install golang.org/x/lint/golint@latest
+    - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
-    - golint ./... > golint-report.txt || true
+    - staticcheck ./... | tee staticcheck-report.txt
   artifacts:
     paths:
-      - golint-report.txt
+      - staticcheck-report.txt
     expire_in: 1 week
 
 build:
@@ -69,16 +69,21 @@ container_scanning:
 unit-tests:
   stage: test
   image: golang:1.24.3
+  before_script:
+    - go install github.com/t-yuki/gocover-cobertura@latest
+    - export PATH=$PATH:$(go env GOPATH)/bin
   script:
     - go mod tidy
     - go test -v -coverprofile=coverage.out ./...
+    - gocover-cobertura < coverage.out > coverage.xml
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: coverage.out
+        path: coverage.xml
     paths:
       - coverage.out
+      - coverage.xml
     expire_in: 1 week
 
 integration-tests:
@@ -86,7 +91,7 @@ integration-tests:
   image: golang:1.24.3
   script:
     - go mod tidy
-    - go test -v ./tests/integration
+    - go test -v ./DB
 
 qa_scanning:
   stage: qa
