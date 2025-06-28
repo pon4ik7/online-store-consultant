@@ -16,8 +16,6 @@ lint-job:
   script:
     - golint ./... > golint-report.txt || true
   artifacts:
-    reports:
-      dotenv: golint-report.txt
     paths:
       - golint-report.txt
     expire_in: 1 week
