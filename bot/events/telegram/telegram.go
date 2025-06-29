@@ -55,19 +55,27 @@ func (p *Processor) processCallback(event events.Event) error {
 		return e.Wrap("can't process callback", err)
 	}
 
-	switch event.Text {
-	case "1":
-		return p.sendFeedback(meta.ChatID)
-	case "2":
-		return p.sendFeedback(meta.ChatID)
-	case "3":
-		return p.sendFeedback(meta.ChatID)
-	case "4":
-		return p.sendFeedback(meta.ChatID)
-	case "5":
-		return p.sendFeedback(meta.ChatID)
+	// Обязательно ответить на callback, чтобы убрать "часики" в клиенте Telegram
+	if err := p.tg.AnswerCallbackQuery(event.CallbackQueryID, "Спасибо за вашу оценку!"); err != nil {
+		return err
 	}
-	return ErrUnknownEventType
+
+	if err := p.tg.DeleteMessage(meta.ChatID, event.MessageID); err != nil {
+		return e.Wrap("can't delete message", err)
+	}
+
+	// Убрать inline-клавиатуру, чтобы кнопки пропали и нельзя было нажать повторно
+	err = p.tg.EditMessageReplyMarkup(meta.ChatID, event.MessageID, telegram.InlineKeyboardMarkup{InlineKeyboard: [][]telegram.InlineKeyboardButton{}})
+	if err != nil {
+		return e.Wrap("can't remove inline keyboard", err)
+	}
+
+	switch event.Text {
+	case "1", "2", "3", "4", "5":
+		return p.sendFeedback(meta.ChatID)
+	default:
+		return ErrUnknownEventType
+	}
 }
 
 func (p *Processor) Process(event events.Event) error {
@@ -112,6 +120,7 @@ func event(upd telegram.Update) events.Event {
 				ChatID:   upd.CallbackQuery.Message.Chat.ID,
 				Username: upd.CallbackQuery.From.Username,
 			},
+			MessageID: upd.CallbackQuery.Message.MessageID,
 		}
 	}
 

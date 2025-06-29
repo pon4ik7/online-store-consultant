@@ -77,6 +77,30 @@ func (c *Client) AnswerCallbackQuery(callbackQueryID string, text string) error 
 	return nil
 }
 
+func (c *Client) DeleteMessage(chatID int, messageID int) error {
+	q := url.Values{}
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("message_id", strconv.Itoa(messageID))
+
+	_, err := c.doRequest("deleteMessage", q)
+	return err
+}
+
+func (c *Client) EditMessageReplyMarkup(chatID int, messageID int, markup InlineKeyboardMarkup) error {
+	q := url.Values{}
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("message_id", strconv.Itoa(messageID))
+
+	markupJSON, err := json.Marshal(markup)
+	if err != nil {
+		return err
+	}
+	q.Add("reply_markup", string(markupJSON))
+
+	_, err = c.doRequest("editMessageReplyMarkup", q)
+	return err
+}
+
 func newBasePath(token string) string {
 	return "bot" + token
 }
