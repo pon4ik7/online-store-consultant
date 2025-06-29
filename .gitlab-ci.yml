@@ -13,6 +13,7 @@ lint-job:
   stage: lint
   image: golang:1.24.3
   before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
@@ -40,9 +41,6 @@ build:
     - docker:24.0.5-dind
   before_script:
     - docker info
-    # Авторизация в Docker Hub
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
-    # Авторизация в Harbor
     - echo "$HARBOR_PASSWORD" | docker login -u "$HARBOR_USERNAME" "$HARBOR_HOST" --password-stdin
   script:
     - docker build -f backend.Dockerfile -t my-backend-image .
@@ -89,6 +87,7 @@ unit-tests:
   stage: test
   image: golang:1.24.3
   before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install github.com/t-yuki/gocover-cobertura@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
@@ -109,11 +108,13 @@ unit-tests:
 integration-tests:
   stage: test
   image: golang:1.24.3
+  before_script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
   script:
     - go mod tidy
     - go test -v ./DB
 
-# Final QA stage duplicate container scanning (optional, maybe keep one)
+# Final QA stage duplicate container scanning
 qa_scanning:
   stage: qa
   image:
