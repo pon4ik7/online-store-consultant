@@ -12,7 +12,10 @@ stages:
 # Linting stage using staticcheck
 lint-job:
   stage: lint
-  image: golang:1.24.3
+  image:
+    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
+    entrypoint: [""]
+
   before_script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install honnef.co/go/tools/cmd/staticcheck@latest
