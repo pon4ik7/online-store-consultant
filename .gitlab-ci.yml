@@ -1,14 +1,6 @@
 variables:
   DOCKER_TLS_CERTDIR: "/certs"
   APP: "my-app"
-  DOCKER_DRIVER: overlay2
-
-default:
-  before_script:
-    - echo "$HARBOR_PASSWORD" | docker login -u "$HARBOR_USERNAME" "$HARBOR_HOST" --password-stdin
-  image:
-    name: docker:24.0.5
-    pull_policy: if-not-present
 
 stages:
   - lint
@@ -16,6 +8,7 @@ stages:
   - test
   - qa
 
+# Linting stage using staticcheck
 lint-job:
   stage: lint
   image: golang:1.24.3
@@ -39,10 +32,18 @@ lint-job:
       junit: junit-staticcheck.xml
     expire_in: 1 week
 
+# Docker image build and push
 build:
   stage: build
+  image: docker:24.0.5
   services:
     - docker:24.0.5-dind
+  before_script:
+    - docker info
+    # Авторизация в Docker Hub
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+    # Авторизация в Harbor
+    - echo "$HARBOR_PASSWORD" | docker login -u "$HARBOR_USERNAME" "$HARBOR_HOST" --password-stdin
   script:
     - docker build -f backend.Dockerfile -t my-backend-image .
     - docker tag my-backend-image $HARBOR_HOST/$HARBOR_PROJECT/backend:$CI_JOB_ID
@@ -52,6 +53,7 @@ build:
     - docker tag my-bot-image $HARBOR_HOST/$HARBOR_PROJECT/bot:$CI_JOB_ID
     - docker push $HARBOR_HOST/$HARBOR_PROJECT/bot:$CI_JOB_ID
 
+# Container vulnerability scanning with Trivy
 container_scanning:
   stage: test
   image:
@@ -68,6 +70,7 @@ container_scanning:
     - trivy clean --scan-cache
     - time trivy image --download-db-only --no-progress --cache-dir .trivycache/
     - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --format template --template "@/contrib/gitlab.tpl" --output "$CI_PROJECT_DIR/gl-container-scanning-report.json" "$FULL_IMAGE_NAME"
+    - time trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress "$FULL_IMAGE_NAME"
     - time trivy image --exit-code 1 --cache-dir .trivycache/ --severity CRITICAL --no-progress "$FULL_IMAGE_NAME"
   cache:
     paths:
@@ -81,6 +84,7 @@ container_scanning:
   needs:
     - build
 
+# Unit testing with Go and coverage report in Cobertura format
 unit-tests:
   stage: test
   image: golang:1.24.3
@@ -101,6 +105,7 @@ unit-tests:
       - coverage.xml
     expire_in: 1 week
 
+# Integration tests
 integration-tests:
   stage: test
   image: golang:1.24.3
@@ -108,6 +113,7 @@ integration-tests:
     - go mod tidy
     - go test -v ./DB
 
+# Final QA stage duplicate container scanning (optional, maybe keep one)
 qa_scanning:
   stage: qa
   image:
