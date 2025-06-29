@@ -2,19 +2,11 @@ package main
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 )
-
-//func init() {
-//	if os.Getenv("DISABLE_INIT") == "1" {
-//		return
-//	}
-//}
-
-// $env:DISABLE_INIT = "1", чтобы отключить init().
-// Не 1, чтобы запустить
 
 func TestCreateAuthorizedSession(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
@@ -24,21 +16,21 @@ func TestCreateAuthorizedSession(t *testing.T) {
 	defer mockDB.Close()
 	db = mockDB
 
-	// Ожидание INSERT
+	// Expect the INSERT
 	mock.ExpectExec("INSERT INTO sessions").
 		WithArgs(sqlmock.AnyArg(), "", sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Ожидание CREATE TABLE
+	// Expect the CREATE TABLE
 	mock.ExpectExec(`CREATE TABLE IF NOT EXISTS "session_messages_.*"`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Очистка сессий
+	// Clean up sessions for testing
 	storeMu.Lock()
 	sessionStore = make(map[string]Session)
 	storeMu.Unlock()
 
-	// Очистка зарегистрированных
+	// Clean up registered users for testing
 	logStoreMu.Lock()
 	registeredClientsSessions = make(map[string]Session)
 	logStoreMu.Unlock()
@@ -64,7 +56,7 @@ func TestCreateAuthorizedSession(t *testing.T) {
 		t.Errorf("Session should be marked as registered")
 	}
 
-	// Проверка в registeredClientsSessions
+	// Check the registeredClientsSessions
 	logStoreMu.Lock()
 	_, ok := registeredClientsSessions[key]
 	logStoreMu.Unlock()
@@ -72,8 +64,7 @@ func TestCreateAuthorizedSession(t *testing.T) {
 		t.Errorf("Session should be stored in registeredClientsSessions")
 	}
 
-	// Проверка кукисов
-
+	// Check cookies
 	cookies := recorder.Result().Cookies()
 	if len(cookies) == 0 {
 		t.Errorf("Cookie should not be empty")
@@ -85,11 +76,7 @@ func TestCreateAuthorizedSession(t *testing.T) {
 		t.Errorf("Cookie Value should be equal to session_id, but:  %s != %s", cookies[0].Value, session.ID)
 	}
 
-	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Errorf("Не все ожидания от mock DB выполнены: %v", err)
-	}
-
-	// Проверка, что все ожидания mock выполнены
+	// Check if all the expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("Не все ожидания от mock DB выполнены: %v", err)
 	}
@@ -103,21 +90,21 @@ func TestGetInitialSession_NewSession(t *testing.T) {
 	defer mockDB.Close()
 	db = mockDB
 
-	// Ожидание INSERT
+	// Expect INSERT
 	mock.ExpectExec("INSERT INTO sessions").
 		WithArgs(sqlmock.AnyArg(), "", sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Ожидание CREATE TABLE
+	// Expect CREATE TABLE
 	mock.ExpectExec(`CREATE TABLE IF NOT EXISTS "session_messages_.*"`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Очистка sessionStore
+	// Clean up the sessionStore
 	storeMu.Lock()
 	sessionStore = make(map[string]Session)
 	storeMu.Unlock()
 
-	// Запрос без куки (новый пользователь)
+	// New user
 	req := httptest.NewRequest("GET", "/", nil)
 	recorder := httptest.NewRecorder()
 
@@ -133,7 +120,7 @@ func TestGetInitialSession_NewSession(t *testing.T) {
 		t.Errorf("Session LastActive should be less than 1s ago")
 	}
 
-	// Проверка, что сессия попала в sessionStore
+	// Check the session is in the sessionStore
 	storeMu.Lock()
 	_, ok := sessionStore[session.ID]
 	storeMu.Unlock()
@@ -141,7 +128,7 @@ func TestGetInitialSession_NewSession(t *testing.T) {
 		t.Errorf("Session should be stored in sessionStore")
 	}
 
-	// Проверка куки
+	// Check cookies
 	cookies := recorder.Result().Cookies()
 	if len(cookies) == 0 {
 		t.Errorf("Cookie should not be empty")
@@ -159,7 +146,7 @@ func TestGetInitialSession_NewSession(t *testing.T) {
 }
 
 func TestCreateNewInitialSession(t *testing.T) {
-	// Мокаем базу данных
+	// Mock the database
 	mockDB, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("Creating mock SQL connection failed: %v", err)
@@ -167,16 +154,16 @@ func TestCreateNewInitialSession(t *testing.T) {
 	defer mockDB.Close()
 	db = mockDB
 
-	// Ожидаем INSERT в sessions
+	// Expect INSERT in sessions
 	mock.ExpectExec("INSERT INTO sessions").
 		WithArgs(sqlmock.AnyArg(), "", sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Ожидаем создание таблицы для сообщений
+	// Expect creating the table for messages
 	mock.ExpectExec(`CREATE TABLE IF NOT EXISTS "session_messages_.*"`).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	// Очищаем sessionStore
+	// Cleen up the sessionStore
 	storeMu.Lock()
 	sessionStore = make(map[string]Session)
 	storeMu.Unlock()
@@ -185,7 +172,7 @@ func TestCreateNewInitialSession(t *testing.T) {
 
 	session := createNewInitialSession(recorder)
 
-	// Проверки содержимого Session
+	// Check the Session
 	if session.ID == "" {
 		t.Errorf("Session ID should not be empty")
 	}
@@ -199,7 +186,7 @@ func TestCreateNewInitialSession(t *testing.T) {
 		t.Errorf("Session should not be registered by default")
 	}
 
-	// Проверка, что сессия попала в sessionStore
+	// Check that session is in в sessionStore
 	storeMu.Lock()
 	_, ok := sessionStore[session.ID]
 	storeMu.Unlock()
@@ -207,7 +194,7 @@ func TestCreateNewInitialSession(t *testing.T) {
 		t.Errorf("Session should be stored in sessionStore")
 	}
 
-	// Проверка куки
+	// Check the cookies
 	cookies := recorder.Result().Cookies()
 	foundSessionID := false
 	foundIsRegistered := false
@@ -227,8 +214,99 @@ func TestCreateNewInitialSession(t *testing.T) {
 		t.Errorf("Cookie 'isRegistered' should be set to 'false'")
 	}
 
-	// Проверка, что все mock-ожидания выполнены
+	// // Check if all the expectations were met
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Errorf("Не все ожидания от mock DB выполнены: %v", err)
+	}
+}
+
+func TestGetAuthorizedSession_Exist(t *testing.T) {
+	key := "test_key_123"
+	testSession := Session{
+		ID:           "session_id_123",
+		LastActive:   time.Now(),
+		isRegistered: true,
+		Context:      "",
+	}
+	logStoreMu.Lock()
+	registeredClientsSessions = make(map[string]Session)
+	registeredClientsSessions[key] = testSession
+	logStoreMu.Unlock()
+
+	recorder := httptest.NewRecorder()
+	session, err := getAuthorizedSession(recorder, key)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+
+	if session.ID != testSession.ID {
+		t.Errorf("Session ID should be equal to testSession.ID")
+	}
+	if !session.isRegistered {
+		t.Errorf("Session should be marked as registered")
+	}
+
+	cookies := recorder.Result().Cookies()
+	if cookies[0].Name != "session_id" || cookies[0].Value != testSession.ID {
+		t.Errorf("Expected 'session_id' cookie to be set	")
+	}
+	if cookies[1].Name != "isRegistered" || cookies[1].Value != "true" {
+		t.Errorf("Expected 'isRegistered' cookie to be set to 'true'")
+	}
+}
+
+func TestGetAuthorizedSession_NotExists(t *testing.T) {
+	key := "non_existing_key"
+
+	logStoreMu.Lock()
+	registeredClientsSessions = make(map[string]Session)
+	logStoreMu.Unlock()
+
+	recorder := httptest.NewRecorder()
+
+	session, err := getAuthorizedSession(recorder, key)
+	if err != ErrNotExistingUser {
+		t.Fatalf("Expected ErrNotExistingUser, got: %v", err)
+	}
+
+	if session != (Session{}) {
+		t.Errorf("Expected empty session on error, got: %+v", session)
+	}
+
+	// Check for cookies' absence
+	cookies := recorder.Result().Cookies()
+	if len(cookies) > 0 {
+		t.Errorf("No cookies should be set when session doesn't exist")
+	}
+}
+
+func TestIsRegistered(t *testing.T) {
+	req1 := httptest.NewRequest("GET", "/", nil)
+	req1.AddCookie(&http.Cookie{Name: "isRegistered", Value: "true"})
+
+	ok, err := isRegistered(req1)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+	if !ok {
+		t.Errorf("Expected isRegistered to be true")
+	}
+
+	req2 := httptest.NewRequest("GET", "/", nil)
+	req2.AddCookie(&http.Cookie{Name: "isRegistered", Value: "false"})
+
+	ok, err = isRegistered(req2)
+	if err != nil {
+		t.Errorf("Expected no error, got: %v", err)
+	}
+
+	req3 := httptest.NewRequest("GET", "/", nil)
+
+	ok, err = isRegistered(req3)
+	if err != ErrNotExistingUser {
+		t.Errorf("Expected ErrNotExistingUser, got: %v", err)
+	}
+	if ok {
+		t.Errorf("Expected isRegistered to be false when cookie is missing")
 	}
 }
