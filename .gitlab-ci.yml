@@ -17,7 +17,6 @@ lint-job:
     entrypoint: [""]
 
   before_script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
@@ -89,7 +88,9 @@ container_scanning:
 # Unit testing with Go and coverage report in Cobertura format
 unit-tests:
   stage: test
-  image: golang:1.24.3
+  image:
+    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
+    entrypoint: [""]
   before_script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install github.com/t-yuki/gocover-cobertura@latest
@@ -111,7 +112,9 @@ unit-tests:
 # Integration tests
 integration-tests:
   stage: test
-  image: golang:1.24.3
+  image:
+    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
+    entrypoint: [""]
   before_script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
   script:
