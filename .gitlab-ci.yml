@@ -6,20 +6,17 @@ stages:
   - lint
   - build
   - test
-  - deploy
   - qa
 
 # Linting stage using staticcheck
 lint-job:
   stage: lint
-  image:
-    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
-    entrypoint: [""]
-
+  image: golang:1.24.3
   before_script:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
+    # Run staticcheck and convert to JUnit format using a small converter script
     - staticcheck ./... | tee staticcheck-report.txt || true
     - mkdir -p reports
     - awk '{
@@ -88,11 +85,8 @@ container_scanning:
 # Unit testing with Go and coverage report in Cobertura format
 unit-tests:
   stage: test
-  image:
-    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
-    entrypoint: [""]
+  image: golang:1.24.3
   before_script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
     - go install github.com/t-yuki/gocover-cobertura@latest
     - export PATH=$PATH:$(go env GOPATH)/bin
   script:
@@ -112,30 +106,12 @@ unit-tests:
 # Integration tests
 integration-tests:
   stage: test
-  image:
-    name: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
-    entrypoint: [""]
-  before_script:
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USER" --password-stdin
+  image: golang:1.24.3
   script:
     - go mod tidy
     - go test -v ./DB
 
-deploy:
-  stage: deploy
-  before_script:
-    - docker info
-    - echo "$HARBOR_PASSWORD" | docker login -u "$HARBOR_USERNAME" "$HARBOR_HOST" --password-stdin
-  script:
-    - docker pull $HARBOR_HOST/$HARBOR_PROJECT/$APP:latest
-    - docker rm -f $APP || true
-    - docker run -d --name $APP -p 80:80 $HARBOR_HOST/$HARBOR_PROJECT/$APP:latest
-  tags:
-    - dev-env
-  needs:
-    - container_scanning
-
-# Final QA stage duplicate container scanning
+# Final QA stage duplicate container scanning (optional, maybe keep one)
 qa_scanning:
   stage: qa
   image:
