@@ -1,13 +1,5 @@
 # Online store consultant
 
-
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
 ## Add your files
 
 - [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
@@ -46,10 +38,10 @@ Use the built-in continuous integration in GitLab.
 
 
 ## Name
-Online store consulant
+Online store consulant.
 
 ## Description
-Our project provides the best solution to the pain point of online consultant in the shops. Our team offers the chat-bot that acts as a professional, answers in a simple user-friendly language without complex terms, remembers the shop stock, recall the dialogue history, and even communicates in a way that is indistinguishable from a human.
+Our project provides the best solution to the pain point of online consultantations in the shops. Our team offers the chat-bot that acts as a professional, answers in a simple user-friendly language without complex terms, remembers the shop stock, recall the dialogue history, and even communicates in a way that is indistinguishable from a human.
 
 
 ### Background
@@ -58,20 +50,20 @@ Initially, the consultants that worked locally at a specific shop had to answer 
 
 ### Features
 ```
-* Checking the correctness of requests: the consultant will only answer questions on the topic or direct the client to those topics.
-* The possibility of applying filters
-* The service works without using a VPN
-* The possibility of calling a human consultant
-* Support for additional functionality for registered users
-* Service analytics (processing speed, quality of service)
+* The consultant will only answer questions about the products or direct the client to those topics.
+* The possibility of applying filters.
+* The service works without using a VPN.
+* The possibility of calling a human consultant.
+* Support for additional functionality for registered users.
+* Service analytics (processing speed, quality of service).
 ```
 
 ## Development
 Our policies:
 ```
-* We used the Trunk-based development with short-lived branches attached to a specific issue
-* At least one team member must have provided the useful feedback regarding the MR
-* The QA was performed via pipelining each time the changes in the codebase were introduced
+* We used the Trunk-based development with short-lived branches attached to a specific issue.
+* At least one team member must have provided the useful feedback regarding the MR.
+* The QA was performed via pipelining each time the changes in the codebase were introduced.
 ```
 
 ### Kanban board
@@ -84,10 +76,10 @@ There are entry criteria for each column. An issue can be closed when it reaches
 #### To Do
 ```
 [Entry Criteria]
-* The issue is unambigiously formulated as the issue form template
-* The issue is unanimously estimated in story points by all team members
-* The label is attached to the issue
-* The issue is desided to be in the sprints
+* The issue is unambigiously formulated as the issue form template.
+* The issue is unanimously estimated in story points by all team members.
+* The label is attached to the issue.
+* The issue is desided to be in the sprints.
 ```
 
 #### In Progress
@@ -100,17 +92,17 @@ There are entry criteria for each column. An issue can be closed when it reaches
 #### Ready to Deploy
 ```
 [Entry criteria]
-* The MR attached to the issues passes the pipeline stage
-* The MR is approaved by at least one team member
-* All acceptance criterias are satisfied
-* All issues on which it depends are done
+* The MR attached to the issues passes the pipeline stage.
+* The MR is approaved by at least one team member.
+* All acceptance criterias are satisfied.
+* All issues on which it depends are done.
 ```
 
 #### Closed/Done
 ```
 [Entry criteria]
-* Also the previous development stages are passed
-* The code is merged into the main branch
+* Also the previous development stages are passed.
+* The code is merged into the main branch.
 ```
 
 ### Secret management
@@ -123,22 +115,25 @@ On some READMEs, you may see small images that convey metadata, such as whether 
 Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```
+1) Clone the git repository into your IDE that supports Go programming language and docker deployment.
+2) Create .env with two environment variables in the root of the project with the API_KEY and BOT_TOKEN fields.
+3) Put in these fields valid DeepSeek API key retreived from https://platform.deepseek.com and bot token for your created bot via @BotFather in Telegram respectively.
+4) Having installed Docker on your computer, run docker compose up --build in the IDE Terminal and enjoy the service running.
+```
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 To use our product you should:
 ```
 * /start chat with our bot avalaible as @consultant_radad_bot in Telegram
 * After that, you should follow the instructions that the bot asks you to do (language selection, registration, product selection, session starting)
 * Finally, you can maintain the conversation with the consultant typing any messages you want or use any avalaible commands
 Please Note:
-You can view list of all commands avalaible via Telegram widget "Menu"
-In case of any misunderstanding and/or technical issues write in the PM to our developer using alias from /help command
+* You can view list of all commands avalaible via Telegram widget "Menu"
 ```
 
 ## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+In case of any misunderstanding and/or technical issues write in the PM to our developer using alias from /help command
 
 ## Roadmap
 If you have ideas for releases in the future, it is a good idea to list them in the README.
