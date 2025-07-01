@@ -53,10 +53,75 @@ When you're ready to make this README your own, just edit this file and use the 
 Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
 
 ## Name
-Choose a self-explaining name for your project.
+Online store consulant
 
 ## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Our project provides the best solution to the pain point of online consultant in the shops. Our team offers the chat-bot that acts as a professional, answers in a simple user-friendly language without complex terms, remembers the shop stock, recall the dialogue history, and even communicates in a way that is indistinguishable from a human.
+
+
+### Background
+
+Initially, the consultants that worked locally at a specific shop had to answer to both online and offline clients. As a result, the waiting time increased dramitically while the response quality decreased accordingly.
+
+### Features
+```
+* Checking the correctness of requests: the consultant will only answer questions on the topic or direct the client to those topics.
+* The possibility of applying filters
+* The service works without using a VPN
+* The possibility of calling a human consultant
+* Support for additional functionality for registered users
+* Service analytics (processing speed, quality of service)
+```
+
+## Development
+Our policies:
+```
+* We used the Trunk-based development with short-lived branches attached to a specific issue
+* At least one team member must have provided the useful feedback regarding the MR
+* The QA was performed via pipelining each time the changes in the codebase were introduced
+```
+
+## Kanban board
+The link to our Kanban board:
+https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/boards
+
+### Columns
+There are entry criteria for each column. An issue can be closed when it reaches the ```Done``` column.
+
+### To Do
+```
+[Entry Criteria]
+* The issue is unambigiously formulated as the issue form template
+* The issue is unanimously estimated in story points by all team members
+* The label is attached to the issue
+* The issue is desided to be in the sprints
+```
+
+### In Progress
+```
+[Entry Criteria]
+* The issue description was revised to provide missing details.
+* The issue was added to the current sprint.
+```
+
+### Ready to Deploy
+```
+[Entry criteria]
+* The MR attached to the issues passes the pipeline stage
+* The MR is approaved by at least one team member
+* All acceptance criterias are satisfied
+* All issues on which it depends are done
+```
+
+### Closed/Done
+```
+[Entry criteria]
+* Also the previous development stages are passed
+* The code is merged into the main branch
+```
+
+## Secret management
+We thoroughly look after our secret data such as telegram bot token and DeepSeek API key. We prioriotize the safety in our project, that's why we use .env file to keep all these data. The bot token and DeepSeek API is shared only with the team members in Telegram PM. The data sharing happens iff the keeper of this secret data is sure that he/she is not being contacted by a fraudster.
 
 ## Badges
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
@@ -69,6 +134,15 @@ Within a particular ecosystem, there may be a common way of installing things, s
 
 ## Usage
 Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+To use our product you should:
+```
+* /start chat with our bot avalaible as @consultant_radad_bot in Telegram
+* After that, you should follow the instructions that the bot asks you to do (language selection, registration, product selection, session starting)
+* Finally, you can maintain the conversation with the consultant typing any messages you want or use any avalaible commands
+Please Note:
+You can view list of all commands avalaible via Telegram widget "Menu"
+In case of any misunderstanding and/or technical issues write in the PM to our developer using alias from /help command
+```
 
 ## Support
 Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
