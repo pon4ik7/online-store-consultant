@@ -44,13 +44,6 @@ Use the built-in continuous integration in GitLab.
 
 ***
 
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
 
 ## Name
 Online store consulant
@@ -81,14 +74,14 @@ Our policies:
 * The QA was performed via pipelining each time the changes in the codebase were introduced
 ```
 
-## Kanban board
+### Kanban board
 The link to our Kanban board:
 https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/boards
 
-### Columns
+#### Columns
 There are entry criteria for each column. An issue can be closed when it reaches the ```Done``` column.
 
-### To Do
+#### To Do
 ```
 [Entry Criteria]
 * The issue is unambigiously formulated as the issue form template
@@ -97,14 +90,14 @@ There are entry criteria for each column. An issue can be closed when it reaches
 * The issue is desided to be in the sprints
 ```
 
-### In Progress
+#### In Progress
 ```
 [Entry Criteria]
 * The issue description was revised to provide missing details.
 * The issue was added to the current sprint.
 ```
 
-### Ready to Deploy
+#### Ready to Deploy
 ```
 [Entry criteria]
 * The MR attached to the issues passes the pipeline stage
@@ -113,14 +106,14 @@ There are entry criteria for each column. An issue can be closed when it reaches
 * All issues on which it depends are done
 ```
 
-### Closed/Done
+#### Closed/Done
 ```
 [Entry criteria]
 * Also the previous development stages are passed
 * The code is merged into the main branch
 ```
 
-## Secret management
+### Secret management
 We thoroughly look after our secret data such as telegram bot token and DeepSeek API key. We prioriotize the safety in our project, that's why we use .env file to keep all these data. The bot token and DeepSeek API is shared only with the team members in Telegram PM. The data sharing happens iff the keeper of this secret data is sure that he/she is not being contacted by a fraudster.
 
 ## Badges
