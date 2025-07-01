@@ -2,11 +2,51 @@ package main
 
 import (
 	"github.com/DATA-DOG/go-sqlmock"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
+
+// Now these variables are used only in tests - added DB-logic instead
+var (
+	sessionStore = make(map[string]Session)
+	storeMu      sync.Mutex // For locking/unlocking sessionStore
+
+	registeredClientsSessions = make(map[string]Session)
+	logStoreMu                sync.RWMutex
+)
+
+// Function to get session with an authorized user
+func getAuthorizedSession(w http.ResponseWriter, key string) (Session, error) {
+	logStoreMu.Lock()
+	session, exists := registeredClientsSessions[key]
+	logStoreMu.Unlock()
+	if !exists {
+		log.Printf("No attached session for an authorized client %s exist", key)
+		return Session{}, ErrNotExistingUser
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    session.ID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "isRegistered",
+		Value:    "true",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	return session, nil
+}
 
 func TestCreateAuthorizedSession(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
@@ -170,7 +210,7 @@ func TestCreateNewInitialSession(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 
-	session := createNewInitialSession(recorder)
+	session := createNewAnonymousSession(recorder)
 
 	// Check the Session
 	if session.ID == "" {
