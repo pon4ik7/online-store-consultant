@@ -1,0 +1,44 @@
+@startuml
+actor User
+
+participant "Web API" as WebAPI
+participant "Session Manager" as SessMng
+participant "Message Store" as MsgStore
+database DB
+
+User -> WebAPI : POST /api/login\n{login, password}
+activate WebAPI
+
+WebAPI -> DB : SELECT user_id, session_id\nFROM users\nWHERE credentials = ?
+activate DB
+DB --> WebAPI : user_id, oldSessID
+deactivate DB
+
+WebAPI -> SessMng : MigrateSession(oldSessID)
+activate SessMng
+
+SessMng -> MsgStore : CopyMessages(oldSessID → newSessID)
+activate MsgStore
+MsgStore -> DB : INSERT INTO user_messages_<newSessID>\nSELECT * FROM anonymous_messages_<oldSessID>
+activate DB
+DB --> MsgStore : OK
+deactivate DB
+MsgStore --> SessMng : OK
+deactivate MsgStore
+
+SessMng -> DB : DROP TABLE anonymous_messages_<oldSessID>
+activate DB
+DB --> SessMng : OK
+deactivate DB
+
+SessMng -> DB : DELETE FROM anonymous_sessions\nWHERE session_id = oldSessID
+activate DB
+DB --> SessMng : OK
+deactivate DB
+
+SessMng --> WebAPI : newSessID
+deactivate SessMng
+
+WebAPI --> User : 200 OK\n{"response":"You have successfully logged in"}
+deactivate WebAPI
+@enduml
