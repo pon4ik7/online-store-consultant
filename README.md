@@ -196,7 +196,7 @@ Our project uses GitLab CI to automate the **linting**, **building**, **testing*
 | `Trivy`            | Scans Docker images for vulnerabilities, CVEs, and misconfigurations.   |
 
 #### View all CI pipeline runs
-- [CI/CD Pipelines](./pipelines)
+- [CI/CD Pipelines](https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/pipelines)
 
 ### Continuous Deployment
 Continuous deployment (CD) is **not yet enabled**.
