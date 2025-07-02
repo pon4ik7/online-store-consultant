@@ -178,6 +178,34 @@ There are entry criteria for each column. An issue can be closed when it reaches
 ### Secret management
 We thoroughly look after our secret data such as telegram bot token and DeepSeek API key. We prioriotize the safety in our project, that's why we use .env file to keep all these data. The bot token and DeepSeek API is shared only with the team members in Telegram PM. The data sharing happens iff the keeper of this secret data is sure that he/she is not being contacted by a fraudster.
 
+## Build and deployment
+
+### Continuous Integration
+Our project uses GitLab CI to automate the **linting**, **building**, **testing**, and **vulnerability scanning** processes. This ensures high code quality and early detection of issues.
+
+#### CI pipeline file
+    [`gitlab-ci.yml`](./.gitlab-ci.yml)
+
+#### Static analysis & testing tools used in CI
+| Tool               | Purpose                                                                 |
+|--------------------|-------------------------------------------------------------------------|
+| `staticcheck`      | Performs advanced static analysis of Go code to catch bugs and issues.  |
+| `govulncheck`      | Detects known vulnerabilities in Go modules and standard library usage. |
+| `go test`          | Runs unit and integration tests.                                        |
+| `gocover-cobertura`| Converts Go coverage profiles to Cobertura XML format for reporting.    |
+| `Trivy`            | Scans Docker images for vulnerabilities, CVEs, and misconfigurations.   |
+
+#### View all CI pipeline runs
+- [CI/CD Pipelines](./pipelines)
+
+### Continuous Deployment
+Continuous deployment (CD) is **not yet enabled**.
+
+However, the CI pipeline **builds and pushes Docker images** to a Harbor registry, making them ready for deployment:
+
+- `$HARBOR_HOST/$HARBOR_PROJECT/backend:$CI_JOB_ID`
+- `$HARBOR_HOST/$HARBOR_PROJECT/bot:$CI_JOB_ID`
+
 ## Badges
 On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
