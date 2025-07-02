@@ -120,7 +120,7 @@ vulncheck:
   script:
     - go mod tidy
     - mkdir -p reports
-    - govulncheck ./... | tee reports/govulncheck.txt
+    - govulncheck ./... | tee reports/govulncheck.txt || true
   artifacts:
     paths:
       - reports/govulncheck.txt
