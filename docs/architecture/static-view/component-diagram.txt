@@ -1,0 +1,26 @@
+@startuml
+package "Client side" {
+  [Client App]
+
+}
+
+package "Backend" {
+  [Web API] -down-( getSession
+  getSession -down- [Session Manager]
+  [Web API] -down-( saveMessage
+  saveMessage -down- [Message Store]
+  [Web API] -down-( buildQuery
+  buildQuery -down- [DeepSeek Adapter]
+ 
+}
+
+database "Postgres DB" as DB
+
+[Session Manager] -down-( CRUD
+CRUD -down- [DB]
+[Message Store] -down-( CRUD
+[DeepSeek Adapter] -down-( requestToAI
+requestToAI -down- [DeepSeek API]
+[Client App] -down-( HTTP
+HTTP -down- [Web API]
+@enduml
