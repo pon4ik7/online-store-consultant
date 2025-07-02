@@ -111,6 +111,21 @@ integration-tests:
     - go mod tidy
     - go test -v ./DB
 
+vulncheck:
+  stage: test
+  image: $HARBOR_HOST/docker-hub-cache/library/golang:1.24.3
+  before_script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - export PATH=$PATH:$(go env GOPATH)/bin
+  script:
+    - go mod tidy
+    - mkdir -p reports
+    - govulncheck ./... | tee reports/govulncheck.txt
+  artifacts:
+    paths:
+      - reports/govulncheck.txt
+    expire_in: 1 week
+
 # Final QA stage duplicate container scanning (optional, maybe keep one)
 qa_scanning:
   stage: qa
