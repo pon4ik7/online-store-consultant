@@ -184,7 +184,7 @@ We thoroughly look after our secret data such as telegram bot token and DeepSeek
 Our project uses GitLab CI to automate the **linting**, **building**, **testing**, and **vulnerability scanning** processes. This ensures high code quality and early detection of issues.
 
 #### CI pipeline file
-    [`gitlab-ci.yml`](./.gitlab-ci.yml)
+[`gitlab-ci.yml`](./.gitlab-ci.yml)
 
 #### Static analysis & testing tools used in CI
 | Tool               | Purpose                                                                 |
