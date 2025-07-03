@@ -43,7 +43,9 @@ func checkInactiveSessions() {
 		sessionIDStr := sessionID.String()
 
 		// If last active time is older than 15 minutes and context is empty, save context
-		if time.Since(lastActive) > 15*time.Minute && context == "" {
+
+		if time.Since(lastActive) > 15*time.Minute && context == "" { // 1 minute instead of 15 for demo
+
 			log.Printf("Session %s has been inactive for 15 minutes, saving context", sessionID)
 			if session, _ := sessionStore[sessionIDStr]; !session.isRegistered {
 				log.Printf("The session %s was with unregistered client", sessionID)

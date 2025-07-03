@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	ErrExistingUser    = errors.New("Пользователь с такими данными уже зарегестрирован")
+	ErrExistingUser    = errors.New("Пользователь с такими данными уже зарегистрирован")
 	ErrNotExistingUser = errors.New("Пользователя с такими данными не существует. Сначала завершите регистрацию")
 	ErrNotInfoAboutReg = errors.New("no information about the registered user")
 )
@@ -48,7 +48,7 @@ func startHandler(w http.ResponseWriter, r *http.Request) {
 
 	session := getInitialSession(w, r)
 
-	log.Println("Новая сессия: " + session.ID)
+	log.Println("New unauthorized session: " + session.ID)
 	log.Print("Caching the user messages")
 	updateLastActive(session.ID)
 }
@@ -70,12 +70,46 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
 
+	if _, exists := registeredClientsSessions[key]; exists {
+	}
+
+	isReg, err := isRegistered(r)
+
+	if err != nil {
+		log.Println("Error while checking if user has been registered: " + err.Error())
+	}
+
+	resp := make(map[string]string)
+	w.Header().Set("Content-Type", "application/json")
+
+	if isReg {
+		resp["response"] = ErrExistingUser.Error()
+		json.NewEncoder(w).Encode(resp)
+		log.Printf("Session for %s already registered", key)
+		return
+	}
+
+	cookie, err := r.Cookie("session_id")
+
+	if err != nil {
+		log.Printf("Error encountered while parsing cookie: %v", err)
+	} else if cookie.Value == "" {
+		log.Printf("User was not found in the initial sessions, nothing to be done")
+	} else {
+		log.Printf("Deleting initial session for the client %v", cookie.Value)
+		delete(sessionStore, cookie.Value)
+	}
+
 	session, err := createAuthorizedSession(w, key)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Println(fmt.Sprintf("New user %s is register: %s", strings.TrimSpace(clientMsg.Login), session.ID))
+	log.Println(fmt.Sprintf("New user %s is registered: %s", strings.TrimSpace(clientMsg.Login), session.ID))
+
+	resp["response"] = "Вы успешно зарегистрировались и вошли в аккаунт"
+
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Function to handle signing in
@@ -94,13 +128,24 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	key := fmt.Sprintf("%s_%s", strings.TrimSpace(clientMsg.Login), strings.TrimSpace(clientMsg.Password))
+
 	session, err := getAuthorizedSession(w, key)
+
+	resp := make(map[string]string)
+
+	w.Header().Set("Content-Type", "application/json")
+
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		resp["response"] = err.Error()
+		json.NewEncoder(w).Encode(resp)
+		log.Printf("Error encountered while signing in the user %s: %v", key, "user is not registered")
 		return
 	}
 
 	log.Println(fmt.Sprintf("The user %s is loged in for the session: %s", clientMsg.Login, session.ID))
+
+	resp["response"] = "Вы успешно вошли в систему"
+	json.NewEncoder(w).Encode(resp)
 }
 
 // Function that handles the end of the session
@@ -171,7 +216,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 	if ok == nil {
 		resp["response"] = aiResponse
 	} else {
-		resp["response"] = "The consultant could not handle the request, please, ask the support team"
+		resp["response"] = "Консультант не может помочь с этим вопросом, пожалуйста, обратитесь к технической поддержке через /help"
 		log.Println(ok)
 	}
 
@@ -218,7 +263,7 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 
 // Function used to differentiate authorized and non-authorized users
 func isRegistered(r *http.Request) (bool, error) {
-	cookie, err := r.Cookie("isRegister")
+	cookie, err := r.Cookie("isRegistered")
 	if err != nil {
 		return false, ErrNotExistingUser
 	}
