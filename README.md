@@ -218,11 +218,11 @@ In the diagram we have decomposed the application into key components:
 
 Here you can find the diagram: [Component diagram](https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/blob/main/docs/architecture/static-view/component-diagram.png?ref_type=heads), and here is the code for PlantUML: [Code for the diagram](docs/architecture/static-view/component-diagram.txt)
 
-####Coupling and Cohesion
+#### Coupling and Cohesion
 
 Our component breakdown maximizes cohesion by grouping related functionality together - the Session Manager owns only session‐lifecycle concerns, the Message Store handles only persistence of chat messages, and the DeepSeek Adapter is responsible only for proxying AI calls. Coupling between components is kept intentionally low: each interaction happens over a well-defined interface (e.g. HTTP for the Web API, CRUD or SELECT queries for the database, and a single “fetchContext” call to DeepSeek), meaning changes in one component rarely ripple into others.
 
-####Maintainability:
+#### Maintainability:
 
 Modularity: by splitting functionality into discrete components, we can replace or upgrade one piece (for example, swapping out Postgres for another store) without touching business logic.
 
@@ -246,7 +246,8 @@ Here you can find the diagram: [Sequence diagram](https://gitlab.pg.innopolis.un
 
 
 ### Deployment view
-####Description:
+
+#### Description:
 We combine three services on a single Docker bridge network via docker-compose.yml:
 1. PostgreSQL (postgres-container), persisting all user, session and message data.
 2. Go Application (go-app-container), exposing the HTTP API (port 8080), managing sessions, business logic, and AI calls.
@@ -255,7 +256,7 @@ We combine three services on a single Docker bridge network via docker-compose.y
 At runtime the bot and app communicate directly with the database over TCP port 5432. The bot also makes HTTPS calls to the Go API, and the Go API makes outbound HTTPS requests to DeepSeek’s external service for AI completions. This deployment using Docker-Compose only ensures that the customer will also be able to deploy the service using docker-compose up.
 Here you can find the diagram: [Deployment diagram](https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/blob/main/docs/architecture/deployment-view/deployment-diagram.png?ref_type=heads), and here is the code for PlantUML: [Code for the diagram](docs/architecture/deployment-view/deployment-diagram.txt)
 
-####Legend: 
+#### Legend: 
 Solid arrows denote HTTPS connections, dashed arrows denote internal TCP connections; all containers live inside a single Docker bridge network (the big box), while the external DeepSeek API and the client sit outside.
 
 ## Badges
