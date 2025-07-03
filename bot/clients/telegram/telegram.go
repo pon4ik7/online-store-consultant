@@ -62,21 +62,6 @@ func (c *Client) SendMessageWithInlineKeyboard(chatID int, text string, keyboard
 	return nil
 }
 
-func (c *Client) AnswerCallbackQuery(callbackQueryID string, text string) error {
-	q := url.Values{}
-	q.Add("callback_query_id", callbackQueryID)
-	if text != "" {
-		q.Add("text", text)
-	}
-
-	_, err := c.doRequest("answerCallbackQuery", q)
-	if err != nil {
-		return e.Wrap("can't answer callback query", err)
-	}
-
-	return nil
-}
-
 func (c *Client) DeleteMessage(chatID int, messageID int) error {
 	q := url.Values{}
 	q.Add("chat_id", strconv.Itoa(chatID))
