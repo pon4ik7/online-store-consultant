@@ -118,7 +118,16 @@ func (p *Processor) sendResponse(chatID int, response string) error {
 }
 
 func (p *Processor) sendHello(chatID int) error {
-	return p.tg.SendMessage(chatID, msgHello)
+	keyboard := [][]telegram.InlineKeyboardButton{
+		{
+			{Text: "iPhone 13", CallbackData: "p1"},
+			{Text: "MacBook Pro 16", CallbackData: "p2"},
+			{Text: "Sony WH‑1000XM6", CallbackData: "p3"},
+			{Text: "Apple Watch Ultra2", CallbackData: "p4"},
+		},
+	}
+
+	return p.tg.SendMessageWithInlineKeyboard(chatID, msgHello, keyboard)
 }
 
 func (p *Processor) sendFeedback(chatID int) error {
