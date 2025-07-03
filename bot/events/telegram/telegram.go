@@ -6,6 +6,7 @@ import (
 	"bot/lib/e"
 	"errors"
 	"log"
+	"strings"
 )
 
 type Processor struct {
@@ -71,6 +72,7 @@ func (p *Processor) processCallback(event events.Event) error {
 		log.Println("The rating is recorded")
 		return p.sendFeedback(meta.ChatID)
 	case "p1", "p2", "p3", "p4":
+		productsID[meta.ChatID] = strings.TrimPrefix(event.Text, "p")
 		log.Println("The user product choice is recorded")
 		return p.sendResponse(meta.ChatID, "Что вас интересует по данному товару?")
 	default:

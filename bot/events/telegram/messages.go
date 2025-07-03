@@ -14,3 +14,7 @@ const EndCmd = "/end"
 const RegisterCmd = "/register"
 
 const SignInCmd = "/sign_in"
+
+const HelpCmd = "/help"
+
+const StartCmd = "/start"

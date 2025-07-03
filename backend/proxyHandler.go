@@ -164,13 +164,16 @@ func endHandler(w http.ResponseWriter, r *http.Request) {
 
 	resp := make(map[string]string)
 
-	_, ok := sessionStore[cookie.Value]
+	storeMu.Lock()
+	defer storeMu.Unlock()
 
-	if cookie.Value == "" || !ok {
+	session, ok := sessionStore[cookie.Value]
+
+	if !ok {
 		resp["response"] = "У вас нет никаких запущенных сессий"
 		log.Printf("The user does not have any session running")
 	} else {
-		sessionID := sessionStore[cookie.Value].ID
+		sessionID := session.ID
 		log.Printf("The session %s has been ended by the user", sessionID)
 
 		resp["response"] = "Спасибо, что воспользовались нашим консультантом." +

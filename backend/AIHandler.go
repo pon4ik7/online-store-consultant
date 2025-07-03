@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 // UserMessage - a structure to save the user query and send to the DeepSeek
@@ -130,7 +131,7 @@ func ClarifyProductContext(sessionID string, productID string) string {
 	}
 
 	instructions += FetchDialogueContext(sessionID)
-	return instructions + "PRODUCT INFO: " + fmt.Sprintf("%+v", productInfo) + "QUESTION: "
+	return instructions + "PRODUCT INFO: " + fmt.Sprintf("%+v\n", productInfo) + "QUESTION: "
 }
 
 func FetchDialogueContext(sessionID string) string {
@@ -139,11 +140,12 @@ func FetchDialogueContext(sessionID string) string {
 		log.Printf("The error encountered while fetching: %v", err)
 		return ""
 	}
-	context := ""
+	context := strings.Builder{}
 	for _, message := range messagesCache {
-		context += message + "\n"
+		context.WriteString(message)
+		context.WriteRune('\n')
 	}
-	return context
+	return context.String()
 }
 
 func GetResponse(query string, isAdmin bool) (string, error) {
@@ -179,6 +181,7 @@ func GetResponse(query string, isAdmin bool) (string, error) {
 		return "", fmt.Errorf("failed to create html request: %v", err)
 	}
 
+	// godotenv.Load надо запускать 1 раз
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}

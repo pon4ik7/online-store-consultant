@@ -10,11 +10,7 @@ import (
 	"strings"
 )
 
-const (
-	HelpCmd  = "/help"
-	StartCmd = "/start"
-)
-
+var productsID = make(map[int]string)
 var clients = make(map[int]*http.Client)
 
 func (p *Processor) doCmd(text string, chatID int) error {
@@ -132,7 +128,8 @@ func (p *Processor) doCmd(text string, chatID int) error {
 			return p.sendStartInvalid(chatID)
 		} else {
 			message := map[string]string{
-				"message": text,
+				"message":   text,
+				"productID": productsID[chatID],
 			}
 			jsonData, _ := json.Marshal(message)
 
@@ -190,6 +187,8 @@ func (p *Processor) sendHello(chatID int) error {
 		{
 			{Text: "iPhone 13", CallbackData: "p1"},
 			{Text: "MacBook Pro 16", CallbackData: "p2"},
+		},
+		{
 			{Text: "Sony WH‑1000XM6", CallbackData: "p3"},
 			{Text: "Apple Watch Ultra2", CallbackData: "p4"},
 		},
