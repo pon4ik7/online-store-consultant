@@ -253,7 +253,7 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(&product)
 	if err != nil {
-		log.Println("Ошибка при декодировании файла:", err)
+		log.Println("Error while decoding the file: ", err)
 		http.Error(w, "Failed to decode product data", http.StatusInternalServerError)
 		return
 	}
