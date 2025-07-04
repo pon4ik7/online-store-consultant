@@ -34,24 +34,37 @@ type Response struct {
 	} `json:"choices"`
 }
 
-func HandleUserQuery(query string, isAdmin bool, sessionID string, productID string) (string, error) {
+func HandleUserQuery(query string, isAdmin bool, sessionID string, productID string, isReg bool) (string, error) {
 	initialPrompt := query
-	query = ClarifyProductContext(sessionID, productID) + query
+	query = ClarifyProductContext(sessionID, productID, isReg) + query
 	response, err := GetResponse(query, isAdmin)
 	if err != nil {
 		log.Println(err)
 		return "", err
-	} else {
-		err := saveMessage(sessionID, initialPrompt, response)
-		if err != nil {
-			log.Fatalf("Error saving message: %v\n", err)
+	}
+	if err != nil {
+		log.Printf("Error checking session registration: %v", err)
+	}
+	if isReg {
+		if err := saveUserMessage(sessionID, initialPrompt, response); err != nil {
+			log.Fatalf("Error saving user message: %v", err)
 			return response, err
+		} else {
+			log.Println("Successfully saved user message")
+		}
+	} else {
+		if err := saveAnonymousMessage(sessionID, initialPrompt, response); err != nil {
+			log.Fatalf("Error saving anonymous message: %v", err)
+			return response, err
+		} else {
+			log.Println("Successfully saved anonymous message")
 		}
 	}
+
 	return response, nil
 }
 
-func ClarifyProductContext(sessionID string, productID string) string {
+func ClarifyProductContext(sessionID string, productID string, registered bool) string {
 	instructions := "ALWAYS KEEP IN MIND THAT: You are friendly and professional consultant in RADAT electronics store." +
 		"Your goal is to assist customers with electronics products only (laptops, smartphones, etc.) while following rules: \n" +
 		"In case client greets you, greet him in response and ask about possible help\n" +
@@ -132,12 +145,12 @@ func ClarifyProductContext(sessionID string, productID string) string {
 		}
 	}
 
-	instructions += FetchDialogueContext(sessionID)
+	instructions += FetchDialogueContext(sessionID, registered)
 	return instructions + "PRODUCT INFO: " + fmt.Sprintf("%+v\n", productInfo) + "QUESTION: "
 }
 
-func FetchDialogueContext(sessionID string) string {
-	messagesCache, err := returnSessionMessages(sessionID)
+func FetchDialogueContext(sessionID string, registered bool) string {
+	messagesCache, err := returnSessionMessages(sessionID, registered)
 	if err != nil {
 		log.Printf("The error encountered while fetching: %v", err)
 		return ""
@@ -183,7 +196,6 @@ func GetResponse(query string, isAdmin bool) (string, error) {
 		return "", fmt.Errorf("failed to create html request: %v", err)
 	}
 
-	// godotenv.Load надо запускать 1 раз
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
@@ -222,7 +234,7 @@ func GetResponse(query string, isAdmin bool) (string, error) {
 
 func SaveDialogueContext(sessionIDStr string, db *sql.DB) {
 	// This request works at the end of the session - it preserves its context
-	wholeDialogue := FetchDialogueContext(sessionIDStr)
+	wholeDialogue := FetchDialogueContext(sessionIDStr, true)
 	if wholeDialogue == "" {
 		log.Printf("User did not send any messages in the session: %s", sessionIDStr)
 		return
@@ -239,10 +251,11 @@ func SaveDialogueContext(sessionIDStr string, db *sql.DB) {
 	log.Printf("Saving keywords: %v", keyWords)
 	sessionID, err := uuid.Parse(sessionIDStr)
 	_, err = db.Exec(`
-		INSERT INTO sessions (session_id, context)
-		VALUES ($1, $2)
-		ON CONFLICT (session_id) DO UPDATE
-		SET context = EXCLUDED.context;
+		INSERT INTO user_sessions (session_id, context, was_context_updated)
+		VALUES ($1, $2, TRUE)
+		ON CONFLICT (session_id)
+		DO UPDATE
+		SET context = EXCLUDED.context, was_context_updated = TRUE;
 	`, sessionID, keyWords)
 	if err != nil {
 		log.Fatalf("Failed to save dialogue context for session %s: %v", sessionID, err)

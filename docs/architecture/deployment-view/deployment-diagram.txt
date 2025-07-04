@@ -1,0 +1,30 @@
+@startuml
+
+left to right direction
+skinparam rectangle {
+  RoundCorner 5
+  BackgroundColor #F8F8F8
+  BorderColor #333333
+}
+skinparam database {
+  BackgroundColor #F8F8F8
+  BorderColor #333333
+}
+
+node "Docker Bridge\nNetwork" as Network {
+  rectangle "Telegram Bot\n(tg-bot-container)" as Bot
+  rectangle "Go API\n(go-app-container)" as GoAPI
+  database "Postgres DB\n(postgres-container)" as DB
+}
+
+rectangle "DeepSeek API" as DS #F8F8F8
+rectangle "Client" as Client #F8F8F8
+
+Bot --> GoAPI : HTTPS (8080)
+Client --> GoAPI : HTTPS (8080)
+GoAPI ..> DB : TCP (5432)
+Bot ..> DB : TCP (5432)
+
+GoAPI --> DS : HTTPS
+
+@enduml
