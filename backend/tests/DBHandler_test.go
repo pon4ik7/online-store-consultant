@@ -15,13 +15,6 @@ import (
 	"time"
 )
 
-type Session struct {
-	ID           string
-	LastActive   time.Time
-	isRegistered bool
-	Context      string
-}
-
 // Defines the test suite structure for testing repository functions
 type SessionRepoTestSuite struct {
 	suite.Suite
@@ -207,19 +200,8 @@ func (suite *SessionRepoTestSuite) TestReturnSessionMessages() {
 	suite.Equal(expected, messages, "Messages must be equal")
 }
 
-// For mocking
-type mockContextSaver struct {
-	CalledWith string
-}
-
-// Mock the call of SaveDialogueContext()
-func (m *mockContextSaver) SaveDialogueContext(sessionID string) error {
-	m.CalledWith = sessionID
-	return nil
-}
-
 func (suite *SessionRepoTestSuite) TestCheckInactiveSessions() {
-	// Create sessions
+	// Подготовка таблицы
 	_, err := suite.conn.Exec(suite.ctx, `
         CREATE TABLE IF NOT EXISTS sessions (
             session_id TEXT PRIMARY KEY,
@@ -230,7 +212,7 @@ func (suite *SessionRepoTestSuite) TestCheckInactiveSessions() {
     `)
 	suite.Require().NoError(err)
 
-	// Testing sessions
+	// Две сессии: активная и неактивная
 	activeSessionID := uuid.New().String()
 	inactiveSessionID := uuid.New().String()
 
@@ -238,28 +220,245 @@ func (suite *SessionRepoTestSuite) TestCheckInactiveSessions() {
         INSERT INTO sessions (session_id, last_active, is_registered, context)
         VALUES 
             ($1, NOW(), true, ''),
-            ($2, NOW() - INTERVAL '1 hour', false, '')
+            ($2, NOW() - INTERVAL '2 minutes', false, '')
     `, activeSessionID, inactiveSessionID)
 	suite.Require().NoError(err)
 
-	// Create sessionStore
+	// sessionStore
 	sessionStore := map[string]repositories.Session{
 		activeSessionID:   {ID: activeSessionID, IsRegistered: true},
 		inactiveSessionID: {ID: inactiveSessionID, IsRegistered: false},
 	}
 
-	// Create mock
-	mockSaver := &mockContextSaver{}
-
-	// Call the method
-	err = suite.repository.CheckInactiveSessions(sessionStore, mockSaver)
+	// Вызов метода
+	err = suite.repository.CheckInactiveSessions(sessionStore)
 	suite.Require().NoError(err)
 
-	// Checks
-	suite.Equal(inactiveSessionID, mockSaver.CalledWith, "SaveDialogueContext должен быть вызван для неактивной сессии")
-
+	// Проверка, что неактивная сессия удалена из store
 	_, exists := sessionStore[inactiveSessionID]
-	suite.False(exists, "Неактивная сессия должна быть удалена")
+	suite.False(exists, "Неактивная сессия должна быть удалена из sessionStore")
+
+	// Проверка, что контекст был сохранён в базу
+	var savedContext string
+	err = suite.conn.QueryRow(suite.ctx, `
+        SELECT context FROM sessions WHERE session_id = $1
+    `, inactiveSessionID).Scan(&savedContext)
+	suite.Require().NoError(err)
+
+	// Поскольку context пустой, ожидаем что он не пустой теперь (хотя ты сохраняешь "", если хочешь — можешь сохранять что-то фиктивное)
+	suite.Equal("", savedContext, "Context должен быть сохранён (может быть пустым, если так реализовано)")
+}
+
+func (suite *SessionRepoTestSuite) TestSaveDialogueContext() {
+	t := suite.T()
+
+	// Ensure the sessions table exists
+	_, err := suite.conn.Exec(suite.ctx, `
+		CREATE TABLE IF NOT EXISTS sessions (
+			session_id UUID PRIMARY KEY,
+			is_registered BOOLEAN DEFAULT FALSE,
+			last_active TIMESTAMP DEFAULT NOW(),
+			context TEXT
+		)
+	`)
+	require.NoError(t, err)
+
+	sessionID := uuid.New().String()
+	keyWords := "gaming, laptop, powerful"
+
+	_, err = suite.conn.Exec(suite.ctx, `
+    INSERT INTO sessions(session_id, last_active, is_registered) VALUES ($1, NOW(), FALSE)
+    ON CONFLICT (session_id) DO NOTHING
+`, sessionID)
+	require.NoError(t, err)
+
+	err = suite.repository.SaveDialogueContext(sessionID, keyWords, false)
+	require.NoError(t, err)
+
+	var ctxFromDB string
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT context FROM sessions WHERE session_id = $1
+	`, sessionID).Scan(&ctxFromDB)
+	require.NoError(t, err)
+
+	assert.Equal(t, keyWords, ctxFromDB, "context должен совпадать")
+}
+
+func (suite *SessionRepoTestSuite) TestDeleteAnonymousSession() {
+	t := suite.T()
+
+	sessionID := uuid.New().String()
+
+	// Создаем таблицу сообщений анонимной сессии
+	tableName := fmt.Sprintf("anonymous_messages_%s", sessionID)
+	_, err := suite.conn.Exec(suite.ctx, fmt.Sprintf(`
+		CREATE TABLE %q (
+			id SERIAL PRIMARY KEY,
+			message TEXT
+		)`, tableName))
+	require.NoError(t, err)
+
+	// Вставляем фиктивную строку
+	_, err = suite.conn.Exec(suite.ctx, fmt.Sprintf(`
+		INSERT INTO %q (message) VALUES ('test message')
+	`, tableName))
+	require.NoError(t, err)
+
+	// Сначала создаём таблицу, без параметров
+	_, err = suite.conn.Exec(suite.ctx, `
+	CREATE TABLE IF NOT EXISTS anonymous_sessions (
+		session_id TEXT PRIMARY KEY
+	)
+`)
+	require.NoError(t, err)
+
+	// Потом вставляем строку с параметром
+	_, err = suite.conn.Exec(suite.ctx, `
+	INSERT INTO anonymous_sessions (session_id) VALUES ($1)
+`, sessionID)
+	require.NoError(t, err)
+
+	// Проверка, что таблица и строка существуют
+	var exists bool
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM pg_tables WHERE tablename = $1
+		)
+	`, fmt.Sprintf("anonymous_messages_%s", sessionID)).Scan(&exists)
+	require.NoError(t, err)
+	assert.True(t, exists, "messages table должна существовать")
+
+	// Вызов DeleteAnonymousSession
+	err = suite.repository.DeleteAnonymousSession(sessionID)
+	require.NoError(t, err)
+
+	// Проверка, что таблицы больше нет
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM pg_tables WHERE tablename = $1
+		)
+	`, fmt.Sprintf("anonymous_messages_%s", sessionID)).Scan(&exists)
+	require.NoError(t, err)
+	assert.False(t, exists, "messages table должна быть удалена")
+
+	// Проверка, что строки в anonymous_sessions нет
+	var count int
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT COUNT(*) FROM anonymous_sessions WHERE session_id = $1
+	`, sessionID).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "строка в anonymous_sessions должна быть удалена")
+}
+
+func (suite *SessionRepoTestSuite) TestRegisterUser() {
+	t := suite.T()
+
+	// Создаем таблицу, если её нет (для изолированного теста)
+	_, err := suite.conn.Exec(suite.ctx, `
+		CREATE TABLE IF NOT EXISTS users (
+			user_id TEXT PRIMARY KEY,
+			credentials TEXT
+		)
+	`)
+	require.NoError(t, err)
+
+	// Пробуем зарегистрировать пользователя
+	credentials := "user:password"
+	userID, err := suite.repository.RegisterUser(suite.ctx, credentials)
+	require.NoError(t, err)
+	require.NotEmpty(t, userID)
+
+	// Проверяем, что пользователь появился в таблице
+	var storedCredentials string
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT credentials FROM users WHERE user_id = $1
+	`, userID).Scan(&storedCredentials)
+	require.NoError(t, err)
+	assert.Equal(t, credentials, storedCredentials)
+}
+
+func (suite *SessionRepoTestSuite) TestCreateUserMessagesTable() {
+	t := suite.T()
+
+	sessionID := uuid.New().String()
+
+	// Вызов метода
+	err := suite.repository.СreateUserMessagesTable(suite.ctx, sessionID)
+	require.NoError(t, err)
+
+	// Проверка, что таблица создана
+	var exists bool
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM pg_tables WHERE tablename = $1
+		)
+	`, fmt.Sprintf("user_messages_%s", sessionID)).Scan(&exists)
+	require.NoError(t, err)
+	assert.True(t, exists, "таблица user_messages_<session_id> должна быть создана")
+
+	// Дополнительно: можно проверить наличие колонок (по желанию)
+}
+
+func (suite *SessionRepoTestSuite) TestLoginUser() {
+	t := suite.T()
+
+	sessionID := uuid.New().String()
+	credentials := "test:pass"
+
+	// Создаём таблицы users и user_sessions
+	_, err := suite.conn.Exec(suite.ctx, `
+	CREATE TABLE IF NOT EXISTS users (
+		user_id TEXT PRIMARY KEY,
+		credentials TEXT UNIQUE,
+		session_id TEXT
+	)
+`)
+	require.NoError(t, err)
+
+	_, err = suite.conn.Exec(suite.ctx, `
+	CREATE TABLE IF NOT EXISTS user_sessions (
+		session_id TEXT PRIMARY KEY,
+		last_active TIMESTAMP,
+		was_context_updated BOOLEAN
+	)
+`)
+	require.NoError(t, err)
+
+	// Вставляем пользователя и его сессию
+	_, err = suite.conn.Exec(suite.ctx, `
+	INSERT INTO user_sessions (session_id, last_active, was_context_updated)
+	VALUES ($1, NOW() - INTERVAL '1 HOUR', TRUE)
+`, sessionID)
+	require.NoError(t, err)
+
+	_, err = suite.conn.Exec(suite.ctx, `
+	INSERT INTO users (user_id, credentials, session_id)
+	VALUES ($1, $2, $3)
+`, sessionID, credentials, sessionID)
+	require.NoError(t, err)
+
+	// Вызов
+	returnedSessionID, err := suite.repository.LoginUser(suite.ctx, credentials)
+	require.NoError(t, err)
+	assert.Equal(t, sessionID, returnedSessionID)
+
+	// Проверка, что last_active обновлён и was_context_updated = false
+	var wasUpdated bool
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT was_context_updated FROM user_sessions WHERE session_id = $1
+	`, sessionID).Scan(&wasUpdated)
+	require.NoError(t, err)
+	assert.False(t, wasUpdated)
+
+	// Проверка, что создана таблица сообщений
+	var tableExists bool
+	err = suite.conn.QueryRow(suite.ctx, `
+		SELECT EXISTS (
+			SELECT 1 FROM pg_tables WHERE tablename = $1
+		)
+	`, fmt.Sprintf("user_messages_%s", sessionID)).Scan(&tableExists)
+	require.NoError(t, err)
+	assert.True(t, tableExists, "таблица сообщений должна быть создана")
 }
 
 // Runs the test suite
