@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/DATA-DOG/go-sqlmock"
 	"log"
 	"net/http"
@@ -348,5 +349,62 @@ func TestIsRegistered(t *testing.T) {
 	}
 	if ok {
 		t.Errorf("Expected isRegistered to be false when cookie is missing")
+	}
+}
+
+func TestDeleteAnonymousSession_Success(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create mock: %v", err)
+	}
+	defer mockDB.Close()
+	db = mockDB
+
+	sessionID := "abc123"
+
+	// Ожидаем DROP TABLE
+	mock.ExpectExec(`DROP TABLE IF EXISTS "anonymous_messages_abc123"`).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	// Ожидаем DELETE FROM anonymous_sessions
+	mock.ExpectExec(`DELETE FROM anonymous_sessions WHERE session_id = \$1`).
+		WithArgs(sessionID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = deleteAnonymousSession(sessionID)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("not all expectations were met: %v", err)
+	}
+}
+
+func TestSaveUserMessage_Success(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to create mock db: %v", err)
+	}
+	defer mockDB.Close()
+	db = mockDB
+
+	sessionID := "abc123"
+	userMsg := "Привет"
+	response := "Здравствуйте!"
+
+	expectedQuery := fmt.Sprintf(`INSERT INTO "user_messages_%s"`, sessionID)
+
+	mock.ExpectExec(expectedQuery).
+		WithArgs(userMsg, response).
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err = saveUserMessage(sessionID, userMsg, response)
+	if err != nil {
+		t.Errorf("expected no error, got: %v", err)
+	}
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("not all expectations were met: %v", err)
 	}
 }
