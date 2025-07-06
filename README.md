@@ -41,7 +41,7 @@ Use the built-in continuous integration in GitLab.
 Online store consulant.
 
 ## Description
-Our project provides the best solution to the pain point of online consultantations in the shops. Our team offers the chat-bot that acts as a professional, answers in a simple user-friendly language without complex terms, remembers the shop stock, recall the dialogue history, and even communicates in a way that is indistinguishable from a human.
+Our project provides the best solution to the pain point of online consultations in the shops. Our team offers the chat-bot that acts as a professional, answers in a simple user-friendly language without complex terms, remembers the shop stock, recall the dialogue history, and even communicates in a way that is indistinguishable from a human.
 
 
 ### Background
@@ -120,7 +120,7 @@ There are entry criteria for each column. An issue can be closed when it reaches
 - **Labelling Issues**  
   Use consistent labels to categorize issues:
     - `bug`, `feature`, `task`, `enhancement`
-    - `priority: high`, `priority: medium`, `priority: low`
+    - `priority: high`, `priфority: medium`, `priority: low`
     - `status: in progress`, `status: blocked`, `status: ready for review`
 
 - **Assigning Issues**  
@@ -178,6 +178,35 @@ There are entry criteria for each column. An issue can be closed when it reaches
 ### Secret management
 We thoroughly look after our secret data such as telegram bot token and DeepSeek API key. We prioriotize the safety in our project, that's why we use .env file to keep all these data. The bot token and DeepSeek API is shared only with the team members in Telegram PM. The data sharing happens iff the keeper of this secret data is sure that he/she is not being contacted by a fraudster.
 
+## Quality assurance
+### Quality attribute scenarios
+See detailed quality attribute scenarios [here](docs/quality-assurance/quality-attribute-scenarios.md)
+
+### Automated tests
+We use the following tools and practices for automated quality assurance:
+
+- **Tools used**:
+  - [`sqlmock`](https://github.com/DATA-DOG/go-sqlmock) – for mocking database queries.
+  - [`httptest`](https://pkg.go.dev/net/http/httptest) – for testing HTTP handlers.
+  - `testing` – Go standard testing framework.
+  - `go test` – to run test suites via CLI or CI.
+
+- **Types of tests implemented**:
+  - **Unit tests** – for individual HTTP handlers (`addProduct`, `addMessage`, `createSession`), verifying logic in isolation and
+  including DB calls through mocks.
+  - **User acceptance tests** - testing the work of the whole project by simulating user's
+interaction with it.
+  - **Integration-style tests** – simulate end-to-end HTTP interaction via `httptest`, including DB calls.
+  - **User assistance behavior checks** – verify that the system gives meaningful help when queries are vague or invalid.
+- **Test file locations**:
+  - `unit_tests.go` – main unit test suite for session logic and database operations.
+  - `DBBasicRequests-unit_test.go` – unit tests for some database requests such as `addProduct`, `addMessage`, etc.
+  - `DBHandler_test.go` - integration test suite for database operations.
+All tests can be executed using:
+```bash
+go test ./...
+```
+Tests run automatically on push due to pipeline (view [Build and deployment](#Build-and-deployment))
 ## Build and deployment
 
 ### Continuous Integration
