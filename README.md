@@ -249,6 +249,10 @@ We thoroughly look after our secret data such as telegram bot token and DeepSeek
 ### Quality attribute scenarios
 See detailed quality attribute scenarios [here](docs/quality-assurance/quality-attribute-scenarios.md)
 
+### User acceptance tests
+
+See detailed user acceptance tests [here](https://gitlab.pg.innopolis.university/r.muliukin/online-store-consultant/-/blob/main/docs/quality-assurance/user-acceptance-tests.md?ref_type=heads)
+
 ### Automated tests
 We use the following tools and practices for automated quality assurance:
 
