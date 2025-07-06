@@ -5,6 +5,8 @@ import (
 	"bot/events"
 	"bot/lib/e"
 	"errors"
+	"log"
+	"strings"
 )
 
 type Processor struct {
@@ -55,11 +57,6 @@ func (p *Processor) processCallback(event events.Event) error {
 		return e.Wrap("can't process callback", err)
 	}
 
-	// Обязательно ответить на callback, чтобы убрать "часики" в клиенте Telegram
-	if err := p.tg.AnswerCallbackQuery(event.CallbackQueryID, "Спасибо за вашу оценку!"); err != nil {
-		return err
-	}
-
 	if err := p.tg.DeleteMessage(meta.ChatID, event.MessageID); err != nil {
 		return e.Wrap("can't delete message", err)
 	}
@@ -72,7 +69,12 @@ func (p *Processor) processCallback(event events.Event) error {
 
 	switch event.Text {
 	case "1", "2", "3", "4", "5":
+		log.Println("The rating is recorded")
 		return p.sendFeedback(meta.ChatID)
+	case "p1", "p2", "p3", "p4":
+		productsID[meta.ChatID] = strings.TrimPrefix(event.Text, "p")
+		log.Println("The user product choice is recorded")
+		return p.sendResponse(meta.ChatID, "Что вас интересует по данному товару?")
 	default:
 		return ErrUnknownEventType
 	}

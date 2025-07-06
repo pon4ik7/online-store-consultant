@@ -10,11 +10,7 @@ import (
 	"strings"
 )
 
-const (
-	HelpCmd  = "/help"
-	StartCmd = "/start"
-)
-
+var productsID = make(map[int]string)
 var clients = make(map[int]*http.Client)
 
 func (p *Processor) doCmd(text string, chatID int) error {
@@ -127,12 +123,15 @@ func (p *Processor) doCmd(text string, chatID int) error {
 			return p.sendResponse(chatID, response["response"])
 		}
 
+	} else if text == GoodsCmd {
+		return p.sendGoods(chatID)
 	} else {
 		if client, ok := clients[chatID]; !ok {
 			return p.sendStartInvalid(chatID)
 		} else {
 			message := map[string]string{
-				"message": text,
+				"message":   text,
+				"productID": productsID[chatID],
 			}
 			jsonData, _ := json.Marshal(message)
 
@@ -186,9 +185,35 @@ func (p *Processor) sendResponse(chatID int, response string) error {
 }
 
 func (p *Processor) sendHello(chatID int) error {
-	return p.tg.SendMessage(chatID, msgHello)
+	keyboard := [][]telegram.InlineKeyboardButton{
+		{
+			{Text: "iPhone 13", CallbackData: "p1"},
+			{Text: "MacBook Pro 16", CallbackData: "p2"},
+		},
+		{
+			{Text: "Sony WH‑1000XM6", CallbackData: "p3"},
+			{Text: "Apple Watch Ultra2", CallbackData: "p4"},
+		},
+	}
+
+	return p.tg.SendMessageWithInlineKeyboard(chatID, msgHello, keyboard)
 }
 
 func (p *Processor) sendFeedback(chatID int) error {
 	return p.tg.SendMessage(chatID, msgFeedback)
+}
+
+func (p *Processor) sendGoods(chatID int) error {
+	keyboard := [][]telegram.InlineKeyboardButton{
+		{
+			{Text: "iPhone 13", CallbackData: "p1"},
+			{Text: "MacBook Pro 16", CallbackData: "p2"},
+		},
+		{
+			{Text: "Sony WH‑1000XM6", CallbackData: "p3"},
+			{Text: "Apple Watch Ultra2", CallbackData: "p4"},
+		},
+	}
+
+	return p.tg.SendMessageWithInlineKeyboard(chatID, msgGoods, keyboard)
 }

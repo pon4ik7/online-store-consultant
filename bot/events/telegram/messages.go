@@ -2,7 +2,7 @@ package telegram
 
 const msgHelp = `Извините, что наш консультант принёс Вам неудобства. Пожалуйста, свяжитесь с @m_magia`
 
-const msgHello = "Здравствуйте, меня зовут RADAT. Я являюсь консультантом данного магазина. Чем могу вам помочь?"
+const msgHello = "Здравствуйте, меня зовут RADAT. Я являюсь консультантом данного магазина. По какому товару у Вас есть вопросы?"
 
 const msgFeedback = "Спасибо за вашу оценку!"
 
@@ -14,3 +14,11 @@ const EndCmd = "/end"
 const RegisterCmd = "/register"
 
 const SignInCmd = "/sign_in"
+
+const HelpCmd = "/help"
+
+const StartCmd = "/start"
+
+const GoodsCmd = "/goods"
+
+const msgGoods = "Выберите другой товар"
